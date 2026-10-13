@@ -11,11 +11,11 @@ spec:
     name: killington
   windowStart: "2026-10-15T00:00:00Z"
   windowEnd: "2026-10-16T12:00:00Z"
-  predictedSnowfallInches: 14.5
-  snowToLiquidRatio: 16.0
-  freezingLevelElevationFt: 1800
-  powderScore: 92
-  confidenceInterval: 85.5
+  predictedSnowfallInches: 1.0
+  snowToLiquidRatio: 5.6
+  freezingLevelElevationFt: 5750
+  powderScore: 32
+  confidenceInterval: 88.0
 ---
 apiVersion: weather.powderpredictor.io/v1alpha1
 kind: SnowForecastReport
@@ -30,8 +30,8 @@ spec:
     name: jay-peak
   windowStart: "2026-10-15T00:00:00Z"
   windowEnd: "2026-10-16T12:00:00Z"
-  predictedSnowfallInches: 18.0
-  snowToLiquidRatio: 18.5
-  freezingLevelElevationFt: 1200
-  powderScore: 98
-  confidenceInterval: 90.0
+  predictedSnowfallInches: 1.5
+  snowToLiquidRatio: 6.2
+  freezingLevelElevationFt: 5850
+  powderScore: 36
+  confidenceInterval: 85.0
