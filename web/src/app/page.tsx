@@ -275,40 +275,49 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Central Segmented View Mode Tabs */}
-          <nav className="flex items-center bg-white/[0.04] p-1.5 rounded-2xl border border-white/[0.08] text-sm shadow-inner">
+          {/* Central Segmented View Mode Tabs (Apple / Ellipsus sleek craft styling) */}
+          <nav className="flex items-center bg-[#0d0e14]/90 p-1 rounded-2xl border border-white/[0.08] text-xs sm:text-sm shadow-xl backdrop-blur-md">
             <button
               onClick={() => handleTabChange("map")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "map"
-                  ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-300 hover:text-white"
+                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
+                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <MapIcon className="w-4 h-4" />
+              <MapIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "map" ? "text-sky-400" : "text-stone-400"}`} />
               <span>Alpine Map</span>
+              {activeTab === "map" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-sm shadow-sky-400 shrink-0" />
+              )}
             </button>
             <button
               onClick={() => handleTabChange("bento")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "bento"
-                  ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-300 hover:text-white"
+                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
+                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <LayoutGrid className="w-4 h-4" />
+              <LayoutGrid className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "bento" ? "text-indigo-400" : "text-stone-400"}`} />
               <span>Regional Guide</span>
+              {activeTab === "bento" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400 shrink-0" />
+              )}
             </button>
             <button
               onClick={() => handleTabChange("matrix")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "matrix"
-                  ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-300 hover:text-white"
+                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
+                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <TableProperties className="w-4 h-4" />
+              <TableProperties className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "matrix" ? "text-purple-400" : "text-stone-400"}`} />
               <span>Summit Matrix</span>
+              {activeTab === "matrix" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm shadow-purple-400 shrink-0" />
+              )}
             </button>
           </nav>
 
