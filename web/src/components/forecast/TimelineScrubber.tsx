@@ -47,7 +47,7 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
   };
 
   const getLabel = (hour: number) => {
-    if (hour === 0) return "Observation (Now)";
+    if (hour === 0) return "T0 (Now)";
     if (hour <= 24) return `+${hour}h Horizon`;
     if (hour <= 48) return `+${hour}h Day 2`;
     return `+${hour}h Extended`;
@@ -58,11 +58,12 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
       {/* Top Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5">
-          <Clock className="w-3.5 h-3.5 text-stone-400" />
-          <span className="font-medium tracking-wide uppercase text-stone-300 text-[11px]">
-            72-Hour Atmospheric Timeline
+          <Clock className="w-3.5 h-3.5 text-sky-400" />
+          <span className="font-mono text-stone-400 text-[11px]">[λ_timeline]</span>
+          <span className="font-medium tracking-wide uppercase text-stone-200 text-[11px]">
+            72-Hour Atmospheric Simulation
           </span>
-          <span className="font-mono text-stone-300 bg-white/[0.05] px-2.5 py-0.5 rounded-full border border-white/[0.08] text-[11px]">
+          <span className="font-mono text-sky-300 bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-800/60 text-[11px]">
             {getLabel(currentHourOffset)}
           </span>
         </div>
@@ -71,10 +72,10 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={togglePlay}
-            className={`px-3 py-1.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all duration-150 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all duration-150 cursor-pointer shadow-md ${
               isPlaying
-                ? "bg-amber-400/90 text-stone-950 shadow-sm"
-                : "bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.12]"
+                ? "bg-amber-400 text-stone-950 shadow-amber-500/20"
+                : "bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-sky-500/20"
             }`}
           >
             {isPlaying ? (
@@ -85,7 +86,7 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
             ) : (
               <>
                 <Play className="w-3 h-3 fill-current" />
-                <span>Simulate</span>
+                <span>Simulate Storm</span>
               </>
             )}
           </button>
@@ -102,32 +103,34 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
 
       {/* Slider Bar */}
       <div className="relative pt-1">
-        <input
-          type="range"
-          min={0}
-          max={maxHours}
-          step={stepHours}
-          value={currentHourOffset}
-          onChange={(e) => {
-            setIsPlaying(false);
-            onChange(Number(e.target.value));
-          }}
-          className="w-full h-1.5 bg-white/[0.08] rounded-lg appearance-none cursor-pointer accent-white border-none"
-        />
+        <div className="h-2 w-full rounded-lg bg-gradient-to-r from-sky-500/20 via-indigo-500/20 to-purple-500/20 p-0.5 border border-white/[0.06] flex items-center">
+          <input
+            type="range"
+            min={0}
+            max={maxHours}
+            step={stepHours}
+            value={currentHourOffset}
+            onChange={(e) => {
+              setIsPlaying(false);
+              onChange(Number(e.target.value));
+            }}
+            className="w-full h-1.5 bg-transparent appearance-none cursor-pointer accent-sky-400"
+          />
+        </div>
 
         {/* Ticks & Major Milestones */}
         <div className="flex justify-between text-[10px] text-stone-500 font-mono pt-2">
-          <span className={currentHourOffset === 0 ? "text-white font-medium" : ""}>T0 (Now)</span>
+          <span className={currentHourOffset === 0 ? "text-sky-300 font-semibold" : ""}>T0 (Now)</span>
           <span>+12h</span>
-          <span className={currentHourOffset >= 21 && currentHourOffset <= 27 ? "text-white font-medium" : ""}>
-            +24h
+          <span className={currentHourOffset >= 21 && currentHourOffset <= 27 ? "text-indigo-300 font-semibold" : ""}>
+            +24h Storm Peak
           </span>
           <span>+36h</span>
-          <span className={currentHourOffset >= 45 && currentHourOffset <= 51 ? "text-white font-medium" : ""}>
-            +48h
+          <span className={currentHourOffset >= 45 && currentHourOffset <= 51 ? "text-purple-300 font-semibold" : ""}>
+            +48h Powder Day
           </span>
           <span>+60h</span>
-          <span className={currentHourOffset >= 69 ? "text-white font-medium" : ""}>+72h</span>
+          <span className={currentHourOffset >= 69 ? "text-stone-300 font-semibold" : ""}>+72h</span>
         </div>
       </div>
     </div>
