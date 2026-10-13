@@ -13,24 +13,24 @@ import { FilterBar } from "@/components/filters/FilterBar";
 import { useForecastStream } from "@/hooks/useForecastStream";
 import {
   Snowflake,
-  Radio,
   RefreshCw,
   MapPin,
-  Zap,
   TrendingUp,
   Wind,
   Compass,
+  Thermometer,
+  Layers,
 } from "lucide-react";
 
-// Story 5.6: Lazy load MapLibre GL component with ssr: false for fast initial bundle loading
+// Lazy load MapLibre GL component with ssr: false for fast initial bundle loading
 const ResortMap = dynamic(
   () => import("@/components/map/ResortMap").then((mod) => mod.ResortMap),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[480px] rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 text-slate-500 text-xs">
-        <Snowflake className="w-8 h-8 animate-spin text-cyan-400 mb-2" />
-        <span>Initializing WebGL Canvas &amp; Mountain Markers...</span>
+      <div className="w-full h-full min-h-[480px] rounded-2xl craft-card flex flex-col items-center justify-center text-stone-500 text-xs">
+        <Snowflake className="w-6 h-6 animate-spin text-stone-400 mb-2" />
+        <span>Initializing Topographical Map &amp; Alpine Vectors...</span>
       </div>
     ),
   }
@@ -43,10 +43,10 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
-  // Story 5.3: 72-Hour Temporal Scrubber state
+  // 72-Hour Temporal Scrubber state
   const [scrubHour, setScrubHour] = useState<number>(0);
 
-  // Story 5.4: Custom Persona Profiles & Trip Filters with localStorage persistence
+  // Custom Persona Profiles & Trip Filters with localStorage persistence
   const [selectedPersona, setSelectedPersona] = useState<PersonaPreset>("all");
   const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
 
@@ -121,7 +121,6 @@ export default function HomePage() {
     }
   }, [decorateWithDistances, activeOrigin]);
 
-  // Handle origin city change
   const handleOriginChange = (originId: string) => {
     const found = METRO_ORIGINS.find((o) => o.id === originId) || METRO_ORIGINS[0];
     setActiveOrigin(found);
@@ -157,7 +156,7 @@ export default function HomePage() {
     } catch {}
   };
 
-  // Story 5.5: Connect live Server-Sent Events stream with Toast alerting
+  // Connect live Server-Sent Events stream with Toast alerting
   const { isConnected: sseConnected } = useForecastStream({
     onForecastUpdated: (resortId, powderScore, snowInches) => {
       setResorts((prev) =>
@@ -185,170 +184,163 @@ export default function HomePage() {
     return [...resorts].sort((a, b) => b.powderScore - a.powderScore)[0];
   }, [resorts]);
 
-  const windHoldCount = useMemo(() => {
-    return resorts.filter((r) => r.windHoldWarning).length;
-  }, [resorts]);
-
-  const gladesRecommendedCount = useMemo(() => {
-    return resorts.filter((r) => r.gladesRecommended).length;
-  }, [resorts]);
-
   const avgSLR = useMemo(() => {
     if (resorts.length === 0) return 0;
     const sum = resorts.reduce((acc, r) => acc + r.snowToLiquidRatio, 0);
     return (sum / resorts.length).toFixed(1);
   }, [resorts]);
 
+  const avgFreezingLevel = useMemo(() => {
+    if (resorts.length === 0) return 5800;
+    const sum = resorts.reduce((acc, r) => acc + r.freezingLevelElevationFt, 0);
+    return Math.round(sum / resorts.length);
+  }, [resorts]);
+
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+    <div className="relative min-h-screen bg-[#0b0c0f] text-[#f4f3ef] flex flex-col font-sans selection:bg-white/15 selection:text-white overflow-hidden">
+      {/* Apple-style ethereal ambient radiance */}
+      <div className="ambient-glow" />
+      <div className="ambient-glow-secondary" />
+
       {/* Toast Alert Pipeline */}
       <Toaster position="top-right" richColors theme="dark" />
 
       {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <header className="border-b hairline-border bg-[#0b0c0f]/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-15 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/30">
-              <Snowflake className="w-6 h-6 text-white" />
+            <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.09] flex items-center justify-center text-stone-200 shadow-sm">
+              <Snowflake className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-black text-lg tracking-tight text-white">
-                  Powder<span className="text-cyan-400">Predictor</span>
+                <span className="font-medium text-sm tracking-tight text-[#f4f3ef]">
+                  PowderPredictor
                 </span>
-                <span className="text-[10px] bg-cyan-950/90 text-cyan-300 border border-cyan-700/60 font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                  Northeast Operator
+                <span className="text-[10px] text-stone-400 font-mono tracking-wider uppercase bg-white/[0.04] px-2 py-0.5 rounded-full border border-white/[0.06]">
+                  Northeast
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Atmospheric Lapse Rate &amp; Microclimate Trip Planner
-              </p>
             </div>
           </div>
 
           {/* Right Status / Origin Selector */}
-          <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-xs">
             {/* Origin Metro Dropdown */}
-            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-slate-300 shadow-inner">
-              <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-              <span className="hidden md:inline text-slate-400">Origin:</span>
+            <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.07] rounded-xl px-2.5 py-1 text-stone-300">
+              <MapPin className="w-3 h-3 text-stone-400" />
+              <span className="hidden md:inline text-stone-500 text-[11px]">Origin:</span>
               <select
                 value={activeOrigin.id}
                 onChange={(e) => handleOriginChange(e.target.value)}
-                className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs text-stone-200 focus:outline-none cursor-pointer"
               >
                 {METRO_ORIGINS.map((orig) => (
-                  <option key={orig.id} value={orig.id} className="bg-slate-900 text-white">
+                  <option key={orig.id} value={orig.id} className="bg-[#121318] text-stone-200">
                     {orig.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Informer Mesh / SSE Status */}
-            <div
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border ${
-                sseConnected
-                  ? "bg-emerald-950/60 border-emerald-800/70 text-emerald-300 shadow-sm shadow-emerald-500/20"
-                  : "bg-slate-900 border-slate-700 text-slate-300"
-              }`}
-            >
-              <Radio className={`w-3 h-3 ${sseConnected ? "animate-pulse text-emerald-400" : "text-slate-400"}`} />
-              <span>{sseConnected ? "K8s SSE Stream Active" : "Cluster Sync Active"}</span>
+            {/* Live Data Connection Indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-medium border bg-white/[0.02] border-white/[0.06] text-stone-300">
+              <span className={`w-1.5 h-1.5 rounded-full ${sseConnected ? "bg-emerald-400 animate-pulse" : "bg-stone-500"}`} />
+              <span>{sseConnected ? "Live Telemetry" : "Mesh Connected"}</span>
             </div>
 
             <button
               onClick={fetchForecasts}
               title="Refresh Forecast Data"
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm"
+              className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.07] text-stone-400 hover:text-white transition-colors cursor-pointer"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-cyan-400" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-stone-300" : ""}`} />
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Hero Section & Live Meteorological Stat Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Main Hero Banner */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-950/90 p-6 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <Zap className="w-5 h-5 text-cyan-400" />
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Northeast Powder Intelligence
-                </h1>
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Editorial Narrative & Alpine Telemetry Hero */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+          {/* Main Editorial Lead (Ellipsus-inspired calm typography) */}
+          <div className="lg:col-span-6 craft-card p-6 sm:p-7 rounded-2xl flex flex-col justify-between">
+            <div className="space-y-2.5">
+              <div className="text-[11px] font-medium tracking-widest uppercase text-stone-400">
+                Atmospheric Sounding &amp; Terrain Downscaling
               </div>
-              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Automated downscaling over 24 Northeast peaks across VT, NH, ME, NY, and MA. Calculating real-time Moist Adiabatic Lapse Rates, Dendritic Growth Zone snow ratios, and ridgeline wind slab loading.
+              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#fbfbfa] leading-snug">
+                Northeast Mountain Intelligence
+              </h1>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed max-w-xl">
+                Continuous downscaling across 26 New England and New York summits. Calculating Moist Adiabatic Lapse Rates, freezing line trajectories aloft, and orographic windward-leeward deposition.
               </p>
             </div>
 
             {topResort && (
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+              <div className="mt-6 pt-4 border-t hairline-border flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800/60">
-                    Top Pick Today
+                  <span className="text-[10px] uppercase font-medium text-stone-300 bg-white/[0.05] px-2 py-0.5 rounded-full border border-white/[0.08]">
+                    Current Focal Peak
                   </span>
-                  <span className="font-bold text-white text-sm">{topResort.name}</span>
+                  <span className="font-medium text-white">{topResort.name}</span>
                 </div>
-                <div className="flex items-center gap-3 font-mono">
-                  <span className="text-cyan-400 font-black">{topResort.powderScore} Score</span>
-                  <span className="text-purple-400 font-bold">{topResort.snowfall48hInches}&quot; Fresh</span>
+                <div className="flex items-center gap-3 font-mono text-stone-400">
+                  <span className="text-stone-200 font-semibold">{topResort.powderScore} Score</span>
+                  <span>{topResort.snowfall48hInches}&quot; Fresh</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Stat 1: Protected Glades Primed */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-md flex flex-col justify-between">
+          {/* Metric 1: Freezing Level Aloft */}
+          <div className="lg:col-span-3 craft-card p-5 rounded-2xl flex flex-col justify-between">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Leeward Stashes
+              <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wider">
+                Freezing Line Aloft
               </span>
-              <Compass className="w-4 h-4 text-emerald-400" />
+              <Thermometer className="w-3.5 h-3.5 text-stone-400" />
             </div>
-            <div className="my-2">
-              <span className="text-3xl font-black font-mono text-emerald-400">
-                {gladesRecommendedCount}
-              </span>
-              <span className="text-xs text-slate-400 block mt-1">
-                Mountains with protected powder glades primed
+            <div className="my-3">
+              <div className="text-3xl font-semibold font-mono text-white tracking-tight">
+                {avgFreezingLevel.toLocaleString()}&apos;
+              </div>
+              <span className="text-xs text-stone-400 block mt-1">
+                Regional 32°F boundary altitude (MSL)
               </span>
             </div>
-            <span className="text-[10px] text-emerald-500 font-semibold font-mono">
-              Aspect transport active
+            <span className="text-[11px] text-stone-500 font-mono">
+              3.5°F / 1,000 ft lapse rate
             </span>
           </div>
 
-          {/* Stat 2: Average Regional SLR & Wind Holds */}
-          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-md flex flex-col justify-between">
+          {/* Metric 2: Snow-to-Liquid Ratio & Network Coverage */}
+          <div className="lg:col-span-3 craft-card p-5 rounded-2xl flex flex-col justify-between">
             <div className="flex justify-between items-start">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Regional SLR &amp; Holds
+              <span className="text-[11px] font-medium text-stone-400 uppercase tracking-wider">
+                Average Crystal Density
               </span>
-              <Wind className="w-4 h-4 text-amber-400" />
+              <Wind className="w-3.5 h-3.5 text-stone-400" />
             </div>
-            <div className="my-2">
+            <div className="my-3">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black font-mono text-cyan-400">
+                <span className="text-3xl font-semibold font-mono text-white tracking-tight">
                   {avgSLR}:1
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Avg Snow Density</span>
+                <span className="text-xs text-stone-400 font-mono">SLR Ratio</span>
               </div>
-              <span className="text-xs text-amber-400 block mt-1">
-                {windHoldCount} summit lifts at risk of wind hold
+              <span className="text-xs text-stone-400 block mt-1">
+                Wet autumn precipitation index
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              {resorts.length} mountains monitored
+            <span className="text-[11px] text-stone-500 font-mono">
+              {resorts.length} Northeast peaks indexed
             </span>
           </div>
         </div>
 
-        {/* Story 5.4: Custom Persona Profiles & Season Pass Multi-Select */}
+        {/* Custom Persona Profiles & Season Pass Multi-Select */}
         <FilterBar
           selectedPersona={selectedPersona}
           onSelectPersona={handlePersonaChange}
@@ -357,16 +349,16 @@ export default function HomePage() {
           onClearAll={handleClearFilters}
         />
 
-        {/* Story 5.3: 72-Hour Temporal Scrubbing Bar */}
+        {/* 72-Hour Temporal Scrubbing Bar */}
         <TimelineScrubber
           currentHourOffset={scrubHour}
           onChange={setScrubHour}
         />
 
-        {/* Story 5.6: Responsive Split-Screen Layout (Desktop: 55% Map / 45% Matrix or Stacked) */}
+        {/* Responsive Split-Screen Layout (Desktop: 55% Map / 45% Matrix) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left: Geospatial Map Canvas (55% on desktop) */}
-          <section className="lg:col-span-7 h-[560px]">
+          {/* Left: Geospatial Map Canvas */}
+          <section className="lg:col-span-7 h-[580px]">
             <ResortMap
               resorts={resorts}
               selectedResortId={selectedResort?.resortId}
@@ -375,16 +367,16 @@ export default function HomePage() {
             />
           </section>
 
-          {/* Right: Comparison Matrix (45% on desktop) */}
+          {/* Right: Comparison Matrix */}
           <section className="lg:col-span-5 space-y-3">
             <div className="flex justify-between items-center px-1">
-              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                <span className="text-cyan-400">●</span>
-                <span>Ranked Mountain Matrix</span>
+              <h2 className="text-xs font-medium text-stone-300 uppercase tracking-wider flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/70"></span>
+                <span>Summit Comparison Index</span>
               </h2>
               {lastSyncTime && (
-                <span className="text-[11px] text-slate-500 font-mono">
-                  Synced: {lastSyncTime}
+                <span className="text-[11px] text-stone-500 font-mono">
+                  Updated {lastSyncTime}
                 </span>
               )}
             </div>
@@ -407,9 +399,9 @@ export default function HomePage() {
         hourOffset={scrubHour}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <p>PowderPredictor • Kubernetes-Native Meteorological Operator &amp; Northeast Freeride Intelligence</p>
+      {/* Editorial Footer */}
+      <footer className="border-t hairline-border bg-[#0b0c0f] py-8 text-center text-xs text-stone-500 mt-12">
+        <p>PowderPredictor • Meteorological downscaling &amp; alpine snowpack modeling for the Northeast Appalachian ranges.</p>
       </footer>
     </div>
   );

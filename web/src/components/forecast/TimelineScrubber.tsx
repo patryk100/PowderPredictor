@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Play, Pause, RotateCcw, Clock, Sparkles } from "lucide-react";
+import { Play, Pause, RotateCcw, Clock } from "lucide-react";
 
 interface TimelineScrubberProps {
   currentHourOffset: number; // 0 to 72
@@ -46,24 +46,23 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
     onChange(0);
   };
 
-  // Format forecast offset
   const getLabel = (hour: number) => {
-    if (hour === 0) return "Now (Live)";
-    if (hour <= 24) return `+${hour}h (Day 1)`;
-    if (hour <= 48) return `+${hour}h (Day 2)`;
-    return `+${hour}h (Day 3)`;
+    if (hour === 0) return "Observation (Now)";
+    if (hour <= 24) return `+${hour}h Horizon`;
+    if (hour <= 48) return `+${hour}h Day 2`;
+    return `+${hour}h Extended`;
   };
 
   return (
-    <div className="w-full bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-xl space-y-3">
+    <div className="w-full craft-card rounded-2xl p-4 sm:p-5 space-y-3.5">
       {/* Top Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-cyan-400" />
-          <span className="font-bold text-white uppercase tracking-wider">
-            72-Hour Storm Progression
+        <div className="flex items-center gap-2.5">
+          <Clock className="w-3.5 h-3.5 text-stone-400" />
+          <span className="font-medium tracking-wide uppercase text-stone-300 text-[11px]">
+            72-Hour Atmospheric Timeline
           </span>
-          <span className="font-mono text-cyan-300 font-bold bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800/60">
+          <span className="font-mono text-stone-300 bg-white/[0.05] px-2.5 py-0.5 rounded-full border border-white/[0.08] text-[11px]">
             {getLabel(currentHourOffset)}
           </span>
         </div>
@@ -72,31 +71,31 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={togglePlay}
-            className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all duration-150 cursor-pointer ${
               isPlaying
-                ? "bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20"
-                : "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 hover:bg-cyan-400"
+                ? "bg-amber-400/90 text-stone-950 shadow-sm"
+                : "bg-white/[0.08] hover:bg-white/[0.14] text-white border border-white/[0.12]"
             }`}
           >
             {isPlaying ? (
               <>
-                <Pause className="w-3.5 h-3.5 fill-current" />
+                <Pause className="w-3 h-3 fill-current" />
                 <span>Pause</span>
               </>
             ) : (
               <>
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>Play Simulation</span>
+                <Play className="w-3 h-3 fill-current" />
+                <span>Simulate</span>
               </>
             )}
           </button>
 
           <button
             onClick={handleReset}
-            title="Reset to Live Current Hour"
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+            title="Reset to current observation"
+            className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-stone-400 hover:text-white border border-white/[0.07] transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -113,18 +112,22 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
             setIsPlaying(false);
             onChange(Number(e.target.value));
           }}
-          className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyan-400 border border-slate-800"
+          className="w-full h-1.5 bg-white/[0.08] rounded-lg appearance-none cursor-pointer accent-white border-none"
         />
 
         {/* Ticks & Major Milestones */}
-        <div className="flex justify-between text-[10px] text-slate-400 font-mono pt-1">
-          <span className="font-bold text-cyan-400">T0 (Now)</span>
+        <div className="flex justify-between text-[10px] text-stone-500 font-mono pt-2">
+          <span className={currentHourOffset === 0 ? "text-white font-medium" : ""}>T0 (Now)</span>
           <span>+12h</span>
-          <span className="font-bold text-purple-400">+24h (Storm Peak)</span>
+          <span className={currentHourOffset >= 21 && currentHourOffset <= 27 ? "text-white font-medium" : ""}>
+            +24h
+          </span>
           <span>+36h</span>
-          <span className="font-bold text-blue-400">+48h (Powder Day)</span>
+          <span className={currentHourOffset >= 45 && currentHourOffset <= 51 ? "text-white font-medium" : ""}>
+            +48h
+          </span>
           <span>+60h</span>
-          <span>+72h</span>
+          <span className={currentHourOffset >= 69 ? "text-white font-medium" : ""}>+72h</span>
         </div>
       </div>
     </div>

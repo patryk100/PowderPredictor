@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Map, NavigationControl, Marker } from "maplibre-gl";
 import { ResortForecast } from "@/types/resort";
 import { getSnowfallColor } from "@/lib/geo";
-import { Mountain, Snowflake, Maximize2, Layers } from "lucide-react";
+import { Mountain, Snowflake, Maximize2 } from "lucide-react";
 
 interface ResortMapProps {
   resorts: ResortForecast[];
@@ -117,89 +117,88 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   onSelectResort,
   hourOffset = 0,
 }) => {
-  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<Map | null>(null);
-  const markersRef = useRef<{ [id: string]: Marker }>({});
-
-  const [hoveredResort, setHoveredResort] = useState<ResortForecast | null>(null);
+  const markersRef = useRef<Record<string, Marker>>({});
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [activeBaseLayer, setActiveBaseLayer] = useState<"dark" | "topo" | "satellite">("dark");
-  const [mapLoaded, setMapLoaded] = useState<boolean>(false);
+  const [hoveredResort, setHoveredResort] = useState<ResortForecast | null>(null);
 
   // Initialize MapLibre GL
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    const mapInstance = new Map({
+    map.current = new Map({
       container: mapContainer.current,
       style: MAP_STYLES.dark,
       center: [-72.5, 43.8],
       zoom: 6.8,
-      minZoom: 5.2,
+      minZoom: 5.5,
       maxZoom: 14,
       maxBounds: [
-        [-76.8, 39.8],
-        [-66.2, 47.6],
+        [-76.5, 40.0],
+        [-66.5, 47.5],
       ],
       attributionControl: false,
     });
 
-    mapInstance.addControl(new NavigationControl({ showCompass: true }), "top-right");
+    map.current.addControl(new NavigationControl({ showCompass: true }), "top-right");
 
-    mapInstance.on("load", () => {
+    map.current.on("load", () => {
       setMapLoaded(true);
-      mapInstance.resize();
+      map.current?.resize();
     });
 
-    setTimeout(() => {
-      mapInstance.resize();
-    }, 150);
+    const handleResize = () => {
+      map.current?.resize();
+    };
+    window.addEventListener("resize", handleResize);
 
-    map.current = mapInstance;
-
-    const resizeObserver = new ResizeObserver(() => {
-      mapInstance.resize();
-    });
-    if (mapContainer.current) {
-      resizeObserver.observe(mapContainer.current);
-    }
+    const timer1 = setTimeout(() => map.current?.resize(), 200);
+    const timer2 = setTimeout(() => map.current?.resize(), 800);
 
     return () => {
-      resizeObserver.disconnect();
-      mapInstance.remove();
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      window.removeEventListener("resize", handleResize);
+      map.current?.remove();
       map.current = null;
     };
   }, []);
 
-  const handleLayerSwitch = (layerKey: "dark" | "topo" | "satellite") => {
-    setActiveBaseLayer(layerKey);
-    if (map.current) {
-      map.current.setStyle(MAP_STYLES[layerKey]);
-    }
-  };
+  // Handle Base Layer Switching
+  const handleLayerSwitch = useCallback(
+    (styleKey: "dark" | "topo" | "satellite") => {
+      if (!map.current || activeBaseLayer === styleKey) return;
+      setActiveBaseLayer(styleKey);
+      map.current.setStyle(MAP_STYLES[styleKey]);
+    },
+    [activeBaseLayer]
+  );
 
+  // Fly-to animation on mountain selection
   useEffect(() => {
-    if (!map.current || !selectedResortId) return;
+    if (!map.current || !selectedResortId || !mapLoaded) return;
     const target = resorts.find((r) => r.resortId === selectedResortId);
     if (target) {
       map.current.flyTo({
         center: [target.longitude, target.latitude],
-        zoom: Math.max(map.current.getZoom(), 8.8),
+        zoom: Math.max(map.current.getZoom(), 9.2),
         speed: 1.2,
         curve: 1.4,
         essential: true,
       });
     }
-  }, [selectedResortId, resorts]);
+  }, [selectedResortId, resorts, mapLoaded]);
 
-  // Render SVG Markers synchronized with temporal scrub step
+  // Render Custom SVG Markers
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapLoaded) return;
 
     Object.values(markersRef.current).forEach((m) => m.remove());
     markersRef.current = {};
 
     resorts.forEach((resort) => {
-      // If scrubbing, pull the exact cumulative snow modeled for this hour
       let snowfall = resort.snowfall48hInches ?? resort.predictedSnowfallInches;
       if (hourOffset > 0 && resort.hourlySeries) {
         const step = resort.hourlySeries.find((s) => s.hourOffset === hourOffset);
@@ -212,29 +211,19 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       const isSelected = selectedResortId === resort.resortId;
 
       const el = document.createElement("div");
-      el.className = "group relative cursor-pointer select-none transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2";
-      el.style.width = isSelected ? "46px" : "38px";
-      el.style.height = isSelected ? "46px" : "38px";
-
-      const haloClass = isSelected
-        ? "absolute -inset-1 rounded-full bg-cyan-400/50 animate-ping"
-        : snowfall >= 12
-        ? "absolute -inset-1 rounded-full bg-purple-500/40 animate-pulse"
-        : "hidden";
+      el.className = "group relative cursor-pointer select-none transition-transform duration-200 transform -translate-x-1/2 -translate-y-1/2";
+      el.style.width = isSelected ? "42px" : "34px";
+      el.style.height = isSelected ? "42px" : "34px";
 
       el.innerHTML = `
-        <div class="${haloClass}"></div>
-        <div class="relative w-full h-full rounded-2xl flex flex-col items-center justify-center shadow-2xl transition-all duration-200 border-2 ${
+        <div class="relative w-full h-full rounded-full flex flex-col items-center justify-center transition-all duration-200 border ${
           isSelected
-            ? "border-cyan-300 ring-4 ring-cyan-500/50 scale-110 shadow-cyan-500/50"
-            : "border-white/90 hover:scale-125 hover:border-cyan-300"
-        }" style="background: radial-gradient(circle at 30% 30%, ${colorInfo.hex}, #090d16 140%);">
-          <div class="flex items-center gap-0.5 leading-none">
-            <span class="text-xs font-black text-white font-mono tracking-tight drop-shadow">${Math.round(snowfall)}"</span>
+            ? "border-white ring-2 ring-white/30 scale-110 shadow-lg"
+            : "border-white/30 hover:scale-115 hover:border-white/80"
+        }" style="background: radial-gradient(circle at 35% 35%, ${colorInfo.hex}, #0b0c0f 160%); box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+          <div class="flex items-center leading-none">
+            <span class="text-[11px] font-medium text-white font-mono tracking-tight">${Math.round(snowfall)}"</span>
           </div>
-          <span class="text-[8px] font-bold text-white/90 uppercase tracking-tighter leading-none mt-0.5">
-            ${hourOffset > 0 ? `+${hourOffset}h` : "48h"}
-          </span>
         </div>
       `;
 
@@ -268,38 +257,38 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   }, []);
 
   return (
-    <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#090d16] group">
+    <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden craft-card group">
       <div ref={mapContainer} className="w-full h-full" />
 
       {/* Map Controls */}
       <div className="absolute top-4 right-14 z-20 flex items-center gap-2">
-        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 shadow-xl text-xs">
+        <div className="craft-card p-0.5 rounded-xl flex items-center gap-0.5 text-xs">
           <button
             onClick={() => handleLayerSwitch("dark")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               activeBaseLayer === "dark"
-                ? "bg-cyan-500 text-slate-950 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                ? "bg-white text-[#0b0c0f] shadow-sm"
+                : "text-stone-400 hover:text-white"
             }`}
           >
             Dark
           </button>
           <button
             onClick={() => handleLayerSwitch("topo")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               activeBaseLayer === "topo"
-                ? "bg-cyan-500 text-slate-950 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                ? "bg-white text-[#0b0c0f] shadow-sm"
+                : "text-stone-400 hover:text-white"
             }`}
           >
             Topo
           </button>
           <button
             onClick={() => handleLayerSwitch("satellite")}
-            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
               activeBaseLayer === "satellite"
-                ? "bg-cyan-500 text-slate-950 shadow-sm"
-                : "text-slate-400 hover:text-white"
+                ? "bg-white text-[#0b0c0f] shadow-sm"
+                : "text-stone-400 hover:text-white"
             }`}
           >
             Satellite
@@ -309,61 +298,61 @@ export const ResortMap: React.FC<ResortMapProps> = ({
         <button
           onClick={resetView}
           title="Reset Northeast View"
-          className="bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white p-2 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="craft-card hover:bg-white/[0.08] text-stone-300 hover:text-white p-1.5 rounded-xl text-xs flex items-center gap-1 transition-colors cursor-pointer"
         >
-          <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="font-semibold hidden sm:inline">Fit</span>
+          <Maximize2 className="w-3.5 h-3.5 text-stone-400" />
+          <span className="font-medium hidden sm:inline text-xs">Fit</span>
         </button>
       </div>
 
       {/* Legend Overlay */}
-      <div className="absolute top-4 left-4 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 text-xs shadow-2xl pointer-events-auto">
-        <div className="font-bold text-slate-200 mb-2 flex items-center gap-1.5">
-          <Snowflake className="w-4 h-4 text-cyan-400" />
-          <span>{hourOffset > 0 ? `+${hourOffset}h Accumulation` : "48h Accumulation"}</span>
+      <div className="absolute top-4 left-4 z-20 craft-card rounded-xl p-3 text-xs pointer-events-auto">
+        <div className="font-medium text-stone-300 mb-2 flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
+          <Snowflake className="w-3.5 h-3.5 text-stone-400" />
+          <span>{hourOffset > 0 ? `+${hourOffset}h Total` : "48h Snow Total"}</span>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 text-[11px]">
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-md bg-[#64748b] border border-slate-400 inline-block shadow-sm" />
-            <span className="text-slate-300">&lt; 2&quot; (Dusting)</span>
+            <span className="w-3 h-3 rounded-full bg-[#2d3039] border border-white/20 inline-block" />
+            <span className="text-stone-400">&lt; 2&quot; Dusting</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-md bg-[#38bdf8] border border-white inline-block shadow-sm" />
-            <span className="text-slate-300">2 – 6&quot; (Fresh Cover)</span>
+            <span className="w-3 h-3 rounded-full bg-[#0369a1] border border-white/20 inline-block" />
+            <span className="text-stone-300">2 – 6&quot; Cover</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-md bg-[#2563eb] border border-white inline-block shadow-sm" />
-            <span className="text-slate-300">6 – 12&quot; (Powder Day)</span>
+            <span className="w-3 h-3 rounded-full bg-[#1d4ed8] border border-white/20 inline-block" />
+            <span className="text-stone-300">6 – 12&quot; Powder</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3.5 h-3.5 rounded-md bg-[#7e22ce] border border-white inline-block shadow-sm" />
-            <span className="text-slate-300 font-semibold text-purple-300">12&quot;+ (Deep Dump)</span>
+            <span className="w-3 h-3 rounded-full bg-[#4f46e5] border border-white/20 inline-block" />
+            <span className="text-stone-200">12&quot;+ Storm</span>
           </div>
         </div>
       </div>
 
       {/* Hover Tooltip */}
       {hoveredResort && (
-        <div className="absolute bottom-4 left-4 z-20 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/60 rounded-xl px-4 py-3 text-xs shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
+        <div className="absolute bottom-4 left-4 z-20 craft-card rounded-xl px-4 py-3 text-xs transition-all pointer-events-none">
           <div className="flex items-center gap-2 mb-1.5">
-            <Mountain className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-white text-sm">{hoveredResort.name}</span>
-            <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md uppercase font-bold tracking-wider">
+            <Mountain className="w-3.5 h-3.5 text-stone-400" />
+            <span className="font-medium text-white text-sm">{hoveredResort.name}</span>
+            <span className="text-[10px] bg-white/[0.06] text-stone-300 px-2 py-0.5 rounded-full uppercase font-mono">
               {hoveredResort.region} • {hoveredResort.passType}
             </span>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-slate-300 pt-1.5 border-t border-slate-800/80">
+          <div className="grid grid-cols-3 gap-4 text-stone-300 pt-1.5 border-t hairline-border text-[11px]">
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Summit</span>
-              <span className="font-mono font-bold text-slate-100">{hoveredResort.summitFt.toLocaleString()}&apos;</span>
+              <span className="text-stone-500 block text-[10px] uppercase font-medium">Summit</span>
+              <span className="font-mono text-stone-200">{hoveredResort.summitFt.toLocaleString()}&apos;</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Base</span>
-              <span className="font-mono font-bold text-slate-100">{hoveredResort.baseFt.toLocaleString()}&apos;</span>
+              <span className="text-stone-500 block text-[10px] uppercase font-medium">Base</span>
+              <span className="font-mono text-stone-200">{hoveredResort.baseFt.toLocaleString()}&apos;</span>
             </div>
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Vertical</span>
-              <span className="font-mono font-black text-emerald-400">+{hoveredResort.verticalFt.toLocaleString()}&apos;</span>
+              <span className="text-stone-500 block text-[10px] uppercase font-medium">Vertical</span>
+              <span className="font-mono text-white">+{hoveredResort.verticalFt.toLocaleString()}&apos;</span>
             </div>
           </div>
         </div>

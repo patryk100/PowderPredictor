@@ -22,26 +22,26 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const personas: { id: PersonaPreset; label: string; icon: React.ReactNode; desc: string }[] = [
     {
       id: "all",
-      label: "All Mountains",
-      icon: <Layers className="w-3.5 h-3.5" />,
-      desc: "Full Northeast regional index",
+      label: "All Summits",
+      icon: <Layers className="w-3.5 h-3.5 text-stone-400" />,
+      desc: "Full 26-mountain regional roster",
     },
     {
       id: "glade_hunter",
-      label: "Glade Powder Hunter",
-      icon: <Sparkles className="w-3.5 h-3.5 text-purple-400" />,
+      label: "Powder Glades",
+      icon: <Sparkles className="w-3.5 h-3.5 text-indigo-300" />,
       desc: "Score ≥80 • SLR ≥14:1 • Base ≥24\"",
     },
     {
       id: "wind_avoider",
-      label: "Wind Avoider",
-      icon: <Wind className="w-3.5 h-3.5 text-amber-400" />,
+      label: "Wind Protected",
+      icon: <Wind className="w-3.5 h-3.5 text-amber-300" />,
       desc: "Summit gusts ≤35 mph • No wind hold",
     },
     {
       id: "bluebird_cruiser",
-      label: "Bluebird Cruiser",
-      icon: <Sun className="w-3.5 h-3.5 text-sky-400" />,
+      label: "Fair Weather",
+      icon: <Sun className="w-3.5 h-3.5 text-sky-300" />,
       desc: "Calm winds <15 mph • Clear / settled",
     },
   ];
@@ -49,48 +49,50 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   const passAlliances = ["Ikon", "Epic", "Indy", "Independent"];
 
   return (
-    <div className="w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-4 shadow-xl backdrop-blur-xl space-y-3">
-      {/* Persona Presets */}
+    <div className="w-full craft-card rounded-2xl p-4 sm:p-5 space-y-4">
+      {/* Top Header & Presets */}
       <div>
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-            Ride Style Persona Presets
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-[11px] font-medium tracking-wider uppercase text-stone-400">
+            Target Focus Presets
           </span>
-          <button
-            onClick={onClearAll}
-            className="text-[11px] text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer"
-          >
-            Reset Filters
-          </button>
+          {(selectedPersona !== "all" || selectedPasses.length > 0) && (
+            <button
+              onClick={onClearAll}
+              className="text-[11px] text-stone-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Reset filters
+            </button>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {personas.map((p) => {
             const isSelected = selectedPersona === p.id;
             return (
               <button
                 key={p.id}
                 onClick={() => onSelectPersona(p.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                className={`p-3 rounded-xl border text-left transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? "bg-cyan-950/70 border-cyan-400 text-white shadow-md shadow-cyan-500/20 ring-1 ring-cyan-400"
-                    : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                    ? "bg-white/[0.08] border-white/25 text-white shadow-sm"
+                    : "bg-white/[0.02] border-white/[0.06] text-stone-400 hover:border-white/[0.12] hover:text-stone-200"
                 }`}
               >
-                <div className="flex items-center gap-1.5 font-bold text-xs text-white">
+                <div className="flex items-center gap-2 font-medium text-xs text-[#f4f3ef]">
                   {p.icon}
                   <span>{p.label}</span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1 leading-tight font-mono">{p.desc}</p>
+                <p className="text-[10px] text-stone-400 mt-1 font-mono tracking-tight">{p.desc}</p>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Season Pass Multi-Select */}
-      <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="text-slate-400 font-semibold">Pass Alliance:</span>
+      {/* Season Pass Alliance Selector */}
+      <div className="pt-3 border-t hairline-border flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="text-stone-400 text-[11px] tracking-wide uppercase font-medium">Pass Network:</span>
         <div className="flex flex-wrap items-center gap-1.5">
           {passAlliances.map((pass) => {
             const active = selectedPasses.includes(pass);
@@ -98,14 +100,14 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <button
                 key={pass}
                 onClick={() => onTogglePass(pass)}
-                className={`px-3 py-1 rounded-lg font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-3 py-1 rounded-full text-xs transition-all duration-150 cursor-pointer flex items-center gap-1.5 border ${
                   active
-                    ? "bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-sm"
-                    : "bg-slate-950/80 border-slate-800 text-slate-400 hover:text-slate-200"
+                    ? "bg-[#f4f3ef] text-[#0b0c0f] border-white font-medium shadow-sm"
+                    : "bg-white/[0.02] border-white/[0.07] text-stone-400 hover:text-stone-200 hover:border-white/[0.15]"
                 }`}
               >
-                {active && <Check className="w-3 h-3 stroke-[3]" />}
-                <span>{pass} Pass</span>
+                {active && <Check className="w-3 h-3 stroke-[2.5]" />}
+                <span>{pass}</span>
               </button>
             );
           })}

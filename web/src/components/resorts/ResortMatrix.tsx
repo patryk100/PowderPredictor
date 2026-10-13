@@ -21,8 +21,7 @@ import {
   Compass,
   Clock,
   Mountain,
-  ChevronRight,
-  Sparkles,
+  Search,
 } from "lucide-react";
 
 interface ResortMatrixProps {
@@ -95,40 +94,40 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="flex items-center gap-1.5 font-medium text-stone-400 hover:text-white cursor-pointer uppercase text-[11px] tracking-wider"
           >
-            Mountain &amp; Region
-            <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
+            Summit &amp; Region
+            <ArrowUpDown className="w-3 h-3 text-stone-500" />
           </button>
         ),
         cell: ({ row }) => {
           const r = row.original;
           return (
             <div>
-              <div className="font-bold text-white flex items-center gap-2">
-                <span className="hover:text-cyan-400 transition-colors">{r.name}</span>
+              <div className="font-medium text-[#f4f3ef] flex items-center gap-2">
+                <span>{r.name}</span>
                 {r.windHoldWarning && (
-                  <span title="Wind Hold Risk on Summit Lifts">
-                    <Wind className="w-3.5 h-3.5 text-amber-400 inline" />
+                  <span title="Summit Wind Hold Advisory">
+                    <Wind className="w-3 h-3 text-amber-300 inline" />
                   </span>
                 )}
                 {r.crustRisk && (
-                  <span title="Rain / Crust Warning">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400 inline" />
+                  <span title="Liquid Precipitation / Crust Risk">
+                    <AlertTriangle className="w-3 h-3 text-stone-400 inline" />
                   </span>
                 )}
                 {r.gladesRecommended && (
-                  <span title="Protected Glades Primed">
-                    <Compass className="w-3.5 h-3.5 text-emerald-400 inline" />
+                  <span title="Protected Glade Terrain Primed">
+                    <Compass className="w-3 h-3 text-emerald-300 inline" />
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
-                <span className="font-bold text-slate-300 font-mono">{r.region}</span>
+              <div className="text-[11px] text-stone-400 flex items-center gap-1.5 mt-0.5">
+                <span className="text-stone-300 font-mono">{r.region}</span>
                 <span>•</span>
-                <span className="text-slate-300">{r.passType} Pass</span>
+                <span>{r.passType}</span>
                 <span>•</span>
-                <span>{r.verticalFt.toLocaleString()}&apos; vert</span>
+                <span className="font-mono">{r.verticalFt.toLocaleString()}&apos; vert</span>
               </div>
             </div>
           );
@@ -139,10 +138,10 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="flex items-center gap-1.5 font-medium text-stone-400 hover:text-white cursor-pointer uppercase text-[11px] tracking-wider"
           >
-            Powder Score
-            <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
+            Score
+            <ArrowUpDown className="w-3 h-3 text-stone-500" />
           </button>
         ),
         cell: ({ getValue }) => {
@@ -150,10 +149,10 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
           const badge = getPowderScoreBadge(score);
           return (
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black font-mono text-cyan-400 w-8 text-right">
+              <span className="text-base font-semibold font-mono text-white w-7 text-right">
                 {score}
               </span>
-              <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${badge.bg}`}>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${badge.bg}`}>
                 {badge.label}
               </span>
             </div>
@@ -172,10 +171,10 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="flex items-center gap-1.5 font-medium text-stone-400 hover:text-white cursor-pointer uppercase text-[11px] tracking-wider"
           >
-            {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Storm Snow"}
-            <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
+            {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Snow"}
+            <ArrowUpDown className="w-3 h-3 text-stone-500" />
           </button>
         ),
         cell: ({ getValue, row }) => {
@@ -184,13 +183,13 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
           return (
             <div>
               <span
-                className="inline-block px-2.5 py-0.5 rounded-lg text-xs font-black font-mono text-white shadow-sm"
+                className="inline-block px-2 py-0.5 rounded-md text-xs font-medium font-mono text-white"
                 style={{ backgroundColor: colorInfo.hex }}
               >
                 {snow}&quot;
               </span>
-              <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                24h: <span className="text-slate-200 font-bold">{row.original.snowfall24hInches}&quot;</span>
+              <div className="text-[10px] text-stone-500 mt-0.5 font-mono">
+                24h: <span className="text-stone-300">{row.original.snowfall24hInches}&quot;</span>
               </div>
             </div>
           );
@@ -201,27 +200,22 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="flex items-center gap-1.5 font-medium text-stone-400 hover:text-white cursor-pointer uppercase text-[11px] tracking-wider"
           >
-            Quality &amp; SLR
-            <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
+            SLR Density
+            <ArrowUpDown className="w-3 h-3 text-stone-500" />
           </button>
         ),
         cell: ({ getValue }) => {
           const slr = getValue<number>();
           const isBlower = slr >= 15.0;
-          const isCement = slr < 10.0;
           return (
             <div>
-              <span
-                className={`font-mono font-bold text-sm ${
-                  isBlower ? "text-purple-400" : isCement ? "text-amber-400" : "text-slate-200"
-                }`}
-              >
+              <span className={`font-mono font-medium text-xs ${isBlower ? "text-indigo-300" : "text-stone-300"}`}>
                 {slr.toFixed(1)}:1
               </span>
-              <span className="block text-[10px] text-slate-400">
-                {isBlower ? "Dendritic / Blower" : isCement ? "Dense / Wet" : "Medium Powder"}
+              <span className="block text-[10px] text-stone-500">
+                {isBlower ? "Dendritic" : slr < 8.0 ? "Heavy/Rain" : "Standard"}
               </span>
             </div>
           );
@@ -232,58 +226,25 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
+            className="flex items-center gap-1.5 font-medium text-stone-400 hover:text-white cursor-pointer uppercase text-[11px] tracking-wider"
           >
             Drive Time
-            <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
+            <ArrowUpDown className="w-3 h-3 text-stone-500" />
           </button>
         ),
         cell: ({ row }) => {
           const r = row.original;
-          if (!r.distanceMiles) return <span className="text-slate-500">-</span>;
+          if (!r.distanceMiles) return <span className="text-stone-600">-</span>;
           return (
             <div className="text-xs">
-              <div className="font-mono font-bold text-slate-100 flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+              <div className="font-mono font-medium text-stone-200 flex items-center gap-1.5">
+                <Clock className="w-3 h-3 text-stone-400" />
                 <span>{r.driveTimeEstimate}</span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">{r.distanceMiles} miles</span>
+              <span className="text-[10px] text-stone-500 font-mono">{r.distanceMiles} mi</span>
             </div>
           );
         },
-      },
-      {
-        id: "windAndBase",
-        header: "Base & Wind Risk",
-        cell: ({ row }) => {
-          const r = row.original;
-          return (
-            <div className="text-xs">
-              <div className="flex items-center gap-1.5">
-                <Mountain className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="font-mono text-slate-200 font-bold">{r.baseDepthInches}&quot; base</span>
-              </div>
-              <div className="text-[10px] mt-0.5">
-                {r.windHoldWarning ? (
-                  <span className="text-amber-400 font-semibold flex items-center gap-1">
-                    <Wind className="w-3 h-3" /> Summit Wind Hold
-                  </span>
-                ) : (
-                  <span className="text-emerald-400">Lifts Calm</span>
-                )}
-              </div>
-            </div>
-          );
-        },
-      },
-      {
-        id: "action",
-        header: "",
-        cell: () => (
-          <div className="flex justify-end text-slate-500 group-hover:text-cyan-400">
-            <ChevronRight className="w-4 h-4" />
-          </div>
-        ),
       },
     ],
     [hourOffset]
@@ -300,29 +261,32 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
   });
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3.5">
       {/* Control Bar: Filters, Region Tabs, Search, and View Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 craft-card p-3 rounded-2xl">
         {/* Search & Region Tabs */}
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="text"
-            placeholder="Search mountain or state..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 w-56 transition-colors shadow-inner"
-          />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-stone-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Filter by mountain..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-white/[0.03] border border-white/[0.08] rounded-xl pl-8 pr-3 py-1.5 text-xs text-stone-200 placeholder-stone-500 focus:outline-none focus:border-white/30 w-48 transition-colors"
+            />
+          </div>
 
           {/* Region Tabs */}
-          <div className="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
+          <div className="flex items-center bg-white/[0.03] p-0.5 rounded-xl border border-white/[0.06] text-xs">
             {["ALL", "VT", "NH", "ME", "NY", "MA"].map((reg) => (
               <button
                 key={reg}
                 onClick={() => setRegionFilter(reg)}
-                className={`px-3 py-1 rounded-lg font-semibold cursor-pointer transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium cursor-pointer transition-all duration-150 ${
                   regionFilter === reg
-                    ? "bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-[#0b0c0f] shadow-sm"
+                    : "text-stone-400 hover:text-stone-200"
                 }`}
               >
                 {reg}
@@ -332,41 +296,41 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center bg-white/[0.03] p-0.5 rounded-xl border border-white/[0.06]">
           <button
             onClick={() => setViewMode("table")}
-            className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
               viewMode === "table"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white/[0.1] text-white"
+                : "text-stone-400 hover:text-stone-200"
             }`}
             title="Table View"
           >
-            <List className="w-4 h-4" />
+            <List className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={() => setViewMode("grid")}
-            className={`p-2 rounded-lg transition-colors cursor-pointer ${
+            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
               viewMode === "grid"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                : "text-slate-400 hover:text-slate-200"
+                ? "bg-white/[0.1] text-white"
+                : "text-stone-400 hover:text-stone-200"
             }`}
             title="Card Grid View"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LayoutGrid className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {/* Table View */}
       {viewMode === "table" ? (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800/80 bg-slate-950/70 shadow-2xl backdrop-blur-md">
-          <table className="w-full text-left border-collapse text-sm">
+        <div className="overflow-x-auto rounded-2xl craft-card">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b border-slate-800/80 bg-slate-900/90 text-xs">
+                <tr key={headerGroup.id} className="border-b hairline-border bg-white/[0.02]">
                   {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-5 py-3.5 font-bold text-slate-300">
+                    <th key={header.id} className="px-4 py-3 font-medium text-stone-400">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -375,11 +339,11 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-slate-850/80">
+            <tbody className="divide-y divide-white/[0.04]">
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-5 py-12 text-center text-slate-500 text-xs">
-                    No resorts match current filter criteria.
+                  <td colSpan={columns.length} className="px-4 py-10 text-center text-stone-500 text-xs">
+                    No summits match the selected filter criteria.
                   </td>
                 </tr>
               ) : (
@@ -389,12 +353,12 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
                     <tr
                       key={row.id}
                       onClick={() => onSelectResort && onSelectResort(row.original)}
-                      className={`group hover:bg-slate-900/60 transition-colors cursor-pointer ${
-                        isSelected ? "bg-cyan-950/40 border-l-4 border-cyan-400" : ""
+                      className={`group hover:bg-white/[0.025] transition-colors cursor-pointer ${
+                        isSelected ? "bg-white/[0.05] border-l-2 border-white/80" : ""
                       }`}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td key={cell.id} className="px-5 py-3.5">
+                        <td key={cell.id} className="px-4 py-3">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}
@@ -407,10 +371,10 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         </div>
       ) : (
         /* Card Grid View */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredData.length === 0 ? (
-            <div className="col-span-full text-center py-16 text-slate-500 text-sm">
-              No resorts match current filter criteria.
+            <div className="col-span-full text-center py-12 text-stone-500 text-xs">
+              No summits match the selected filter criteria.
             </div>
           ) : (
             filteredData.map((resort) => {
@@ -426,87 +390,66 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
                 <div
                   key={resort.resortId}
                   onClick={() => onSelectResort && onSelectResort(resort)}
-                  className={`bg-slate-900/80 border rounded-2xl p-5 transition-all duration-200 cursor-pointer shadow-xl hover:border-cyan-400/80 hover:-translate-y-1 backdrop-blur-md ${
-                    isSelected ? "border-cyan-400 ring-2 ring-cyan-500/40" : "border-slate-800"
+                  className={`craft-card rounded-2xl p-4 transition-all duration-150 cursor-pointer ${
+                    isSelected ? "border-white/30 bg-white/[0.06]" : ""
                   }`}
                 >
                   {/* Card Header */}
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <h4 className="font-black text-white text-base tracking-tight">{resort.name}</h4>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <h4 className="font-medium text-[#f4f3ef] text-sm tracking-tight">{resort.name}</h4>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
                         {resort.region} • {resort.passType} Pass
                       </p>
                     </div>
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-md ${scoreBadge.bg}`}>
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${scoreBadge.bg}`}>
                       {scoreBadge.label}
                     </span>
                   </div>
 
                   {/* Highlights Grid */}
-                  <div className="grid grid-cols-2 gap-2.5 my-3.5">
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Powder Score</span>
+                  <div className="grid grid-cols-2 gap-2 my-3">
+                    <div className="bg-white/[0.03] p-2.5 rounded-xl border border-white/[0.05]">
+                      <span className="text-[10px] text-stone-400 block font-medium uppercase tracking-wider">Score</span>
                       <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-2xl font-black text-cyan-400 font-mono">{resort.powderScore}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">/ 100</span>
+                        <span className="text-xl font-semibold text-white font-mono">{resort.powderScore}</span>
+                        <span className="text-[10px] text-stone-500 font-mono">/ 100</span>
                       </div>
                     </div>
 
-                    <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">
-                        {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Snow Total"}
+                    <div className="bg-white/[0.03] p-2.5 rounded-xl border border-white/[0.05]">
+                      <span className="text-[10px] text-stone-400 block font-medium uppercase tracking-wider">
+                        {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Total"}
                       </span>
                       <div className="flex items-baseline gap-1 mt-0.5">
-                        <span className="text-2xl font-black text-purple-400 font-mono">{snowfall}&quot;</span>
-                        <span className="text-[10px] text-slate-400 font-mono">SLR {resort.snowToLiquidRatio}:1</span>
+                        <span className="text-xl font-semibold text-white font-mono">{snowfall}&quot;</span>
+                        <span className="text-[10px] text-stone-500 font-mono">SLR {resort.snowToLiquidRatio}:1</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Drive Time & SNOTEL Depth */}
-                  <div className="text-xs text-slate-400 space-y-1.5 pt-2 border-t border-slate-800/80">
-                    <div className="flex justify-between items-center">
+                  <div className="text-xs text-stone-400 space-y-1.5 pt-2 border-t hairline-border">
+                    <div className="flex justify-between items-center text-[11px]">
                       <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Drive from Origin:</span>
+                        <Clock className="w-3 h-3 text-stone-500" />
+                        <span>Transit Time:</span>
                       </span>
-                      <span className="font-mono font-bold text-slate-100">
+                      <span className="font-mono text-stone-200">
                         {resort.driveTimeEstimate ?? "-"}
                       </span>
                     </div>
 
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center text-[11px]">
                       <span className="flex items-center gap-1.5">
-                        <Mountain className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Vertical / Base Depth:</span>
+                        <Mountain className="w-3 h-3 text-stone-500" />
+                        <span>Vertical Drop:</span>
                       </span>
-                      <span className="font-mono text-slate-200">
-                        +{resort.verticalFt}&apos; / {resort.baseDepthInches}&quot;
+                      <span className="font-mono text-stone-300">
+                        {resort.verticalFt.toLocaleString()}&apos;
                       </span>
                     </div>
                   </div>
-
-                  {/* Alert Indicators */}
-                  {(resort.windHoldWarning || resort.crustRisk || resort.gladesRecommended) && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap gap-1.5">
-                      {resort.windHoldWarning && (
-                        <span className="text-[10px] bg-amber-950/60 border border-amber-800/70 text-amber-400 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
-                          <Wind className="w-3 h-3" /> Wind Hold Risk
-                        </span>
-                      )}
-                      {resort.crustRisk && (
-                        <span className="text-[10px] bg-rose-950/60 border border-rose-800/70 text-rose-400 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Crust Risk
-                        </span>
-                      )}
-                      {resort.gladesRecommended && (
-                        <span className="text-[10px] bg-emerald-950/60 border border-emerald-800/70 text-emerald-400 px-2 py-0.5 rounded-md font-semibold flex items-center gap-1">
-                          <Compass className="w-3 h-3" /> Glades Primed
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })

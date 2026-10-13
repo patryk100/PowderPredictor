@@ -2,8 +2,11 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
+  --background: #0b0c0f;
+  --foreground: #f4f3ef;
+  --surface: #121318;
+  --surface-border: rgba(255, 255, 255, 0.08);
+  --accent: #e2e8f0;
 }
 
 @theme inline {
@@ -14,13 +17,50 @@
 }
 
 body {
-  background: #090d16;
-  color: #f1f5f9;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
+  letter-spacing: -0.011em;
 }
 
-/* Custom MapLibre styling overrides to ensure crisp rendering */
+/* Subtle Apple-inspired ambient atmospheric glow */
+.ambient-glow {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 480px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(140, 175, 220, 0.09) 0%,
+    rgba(160, 130, 210, 0.04) 40%,
+    transparent 70%
+  );
+  filter: blur(60px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Secondary atmospheric pocket */
+.ambient-glow-secondary {
+  position: absolute;
+  top: 350px;
+  right: 5%;
+  width: 500px;
+  height: 400px;
+  background: radial-gradient(
+    circle,
+    rgba(100, 160, 200, 0.04) 0%,
+    transparent 65%
+  );
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Custom MapLibre styling */
 .maplibregl-map {
   font-family: inherit;
   width: 100% !important;
@@ -34,15 +74,17 @@ body {
 }
 
 .maplibregl-ctrl-group {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(51, 65, 85, 0.6) !important;
-  border-radius: 8px !important;
+  background: rgba(18, 19, 24, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35) !important;
   overflow: hidden;
 }
 
 .maplibregl-ctrl-group button {
-  border-bottom: 1px solid rgba(51, 65, 85, 0.4) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
 .maplibregl-ctrl-group button:last-child {
@@ -53,18 +95,39 @@ body {
   filter: invert(1) brightness(1.2);
 }
 
-/* Glassmorphic card styling utilities */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.45);
+/* Refined Craft Glass Surface */
+.craft-card {
+  background: rgba(18, 19, 24, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 32px -8px rgba(0, 0, 0, 0.4);
 }
 
-.glass-panel-glow {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.15);
+.craft-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Fine hairline divider */
+.hairline-border {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Subtle custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
