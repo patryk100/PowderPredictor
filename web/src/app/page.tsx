@@ -254,7 +254,7 @@ export default function HomePage() {
 
       {/* Top Navigation Bar with Integrated View Tabs (GitHub / Apple style) */}
       <header className="border-b hairline-border bg-[#07080b]/85 backdrop-blur-2xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-14 xl:px-16 h-20 flex items-center justify-between gap-6">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-purple-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 shadow-md shadow-sky-500/10">
@@ -377,7 +377,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content Viewport */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-6 sm:px-10 lg:px-14 xl:px-16 py-8 space-y-7">
         {/* Editorial Narrative & Quick Metric Dock */}
         <div className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
