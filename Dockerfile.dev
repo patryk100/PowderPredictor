@@ -1,0 +1,28 @@
+# Multi-stage image designed for local live reload with Tilt
+FROM golang:1.24-alpine AS dev
+
+WORKDIR /workspace
+
+# Install ca-certificates and git
+RUN apk add --no-cache ca-certificates git
+
+# Cache modules
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Build binary
+RUN CGO_ENABLED=0 GOOS=linux go build -o /manager cmd/main.go
+
+# Production / minimal runtime
+FROM alpine:3.20
+
+WORKDIR /
+COPY --from=dev /manager /manager
+
+# Run as unprivileged user
+USER 65532:65532
+
+ENTRYPOINT ["/manager"]
