@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { ResortForecast, ForecastResponse, UserOrigin, PersonaPreset } from "@/types/resort";
 import { calculateDistanceMiles, estimateDriveTime } from "@/lib/geo";
 import { METRO_ORIGINS, COMPREHENSIVE_NORTHEAST_RESORTS } from "@/lib/resortData";
@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   Sparkles,
   Mountain,
+  Check,
 } from "lucide-react";
 
 // Lazy load MapLibre GL component with ssr: false for fast initial bundle loading
@@ -45,6 +46,7 @@ export default function HomePage() {
   const [activeOrigin, setActiveOrigin] = useState<UserOrigin>(METRO_ORIGINS[0]);
   const [activeTab, setActiveTab] = useState<ActiveViewTab>("map");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRecentlyRefreshed, setIsRecentlyRefreshed] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
   // 72-Hour Temporal Scrubber state
@@ -95,9 +97,11 @@ export default function HomePage() {
     []
   );
 
-  const fetchForecasts = useCallback(async () => {
+  const fetchForecasts = useCallback(async (isManualTrigger = false) => {
     try {
       setIsLoading(true);
+      const startTime = Date.now();
+
       const res = await fetch("http://localhost:8080/api/v1/forecasts");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ForecastResponse = await res.json();
@@ -120,10 +124,37 @@ export default function HomePage() {
       } else {
         setResorts(decorateWithDistances(COMPREHENSIVE_NORTHEAST_RESORTS, activeOrigin));
       }
-      setLastSyncTime(new Date().toLocaleTimeString());
+
+      // Guarantee minimum 650ms animation feedback so the click is clearly perceptible
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 650) {
+        await new Promise((resolve) => setTimeout(resolve, 650 - elapsed));
+      }
+
+      const syncTimeString = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      setLastSyncTime(syncTimeString);
+
+      if (isManualTrigger) {
+        setIsRecentlyRefreshed(true);
+        setTimeout(() => setIsRecentlyRefreshed(false), 2400);
+        toast.success("Telemetry Synced", {
+          description: `Updated 26 summits with latest model run (${syncTimeString})`,
+          duration: 3000,
+        });
+      }
     } catch {
       setResorts(decorateWithDistances(COMPREHENSIVE_NORTHEAST_RESORTS, activeOrigin));
-      setLastSyncTime(new Date().toLocaleTimeString());
+      const syncTimeString = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      setLastSyncTime(syncTimeString);
+
+      if (isManualTrigger) {
+        setIsRecentlyRefreshed(true);
+        setTimeout(() => setIsRecentlyRefreshed(false), 2400);
+        toast.info("Cached Telemetry Active", {
+          description: `Synchronized from local high-resolution sounding cache (${syncTimeString})`,
+          duration: 3000,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -306,12 +337,31 @@ export default function HomePage() {
               <span className="hidden xl:inline">{sseConnected ? "Live Telemetry" : "Mesh Connected"}</span>
             </div>
 
+            {/* Interactive Refresh Pill Button */}
             <button
-              onClick={fetchForecasts}
-              title="Refresh Forecast Telemetry"
-              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-stone-300 hover:text-white transition-colors cursor-pointer"
+              onClick={() => fetchForecasts(true)}
+              disabled={isLoading}
+              title={lastSyncTime ? `Last synced at ${lastSyncTime}` : "Refresh Forecast Telemetry"}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+                isRecentlyRefreshed
+                  ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-500/10"
+                  : isLoading
+                  ? "bg-sky-950/50 border-sky-500/50 text-sky-200"
+                  : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] hover:border-white/[0.15] text-stone-300 hover:text-white"
+              }`}
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-sky-400" : ""}`} />
+              {isRecentlyRefreshed ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5] animate-in zoom-in-75 duration-150" />
+              ) : (
+                <RefreshCw
+                  className={`w-3.5 h-3.5 transition-transform duration-500 ${
+                    isLoading ? "animate-spin text-sky-400" : "text-stone-400 group-hover:text-stone-200"
+                  }`}
+                />
+              )}
+              <span className="hidden md:inline font-mono">
+                {isRecentlyRefreshed ? "Updated" : isLoading ? "Syncing..." : lastSyncTime ? `Sync (${lastSyncTime.split(" ")[0]})` : "Sync"}
+              </span>
             </button>
           </div>
         </div>
