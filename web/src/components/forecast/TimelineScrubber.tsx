@@ -56,14 +56,13 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
   return (
     <div className="w-full craft-card rounded-2xl p-4 sm:p-5 space-y-3.5">
       {/* Top Header Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2.5">
-          <Clock className="w-3.5 h-3.5 text-sky-400" />
-          <span className="font-mono text-stone-400 text-[11px]">[λ_timeline]</span>
-          <span className="font-medium tracking-wide uppercase text-stone-200 text-[11px]">
+          <Clock className="w-4 h-4 text-sky-400" />
+          <span className="font-semibold tracking-wider uppercase text-stone-200 text-xs sm:text-sm">
             72-Hour Atmospheric Simulation
           </span>
-          <span className="font-mono text-sky-300 bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-800/60 text-[11px]">
+          <span className="font-mono text-sky-300 bg-sky-950/60 px-2.5 py-0.5 rounded-full border border-sky-800/60 text-xs">
             {getLabel(currentHourOffset)}
           </span>
         </div>
@@ -72,7 +71,7 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={togglePlay}
-            className={`px-3.5 py-1.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-all duration-150 cursor-pointer shadow-md ${
+            className={`px-3.5 py-1.5 rounded-xl font-medium text-xs sm:text-sm flex items-center gap-1.5 transition-all duration-150 cursor-pointer shadow-md ${
               isPlaying
                 ? "bg-amber-400 text-stone-950 shadow-amber-500/20"
                 : "bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-sky-500/20"
@@ -80,12 +79,12 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
           >
             {isPlaying ? (
               <>
-                <Pause className="w-3 h-3 fill-current" />
+                <Pause className="w-3.5 h-3.5 fill-current" />
                 <span>Pause</span>
               </>
             ) : (
               <>
-                <Play className="w-3 h-3 fill-current" />
+                <Play className="w-3.5 h-3.5 fill-current" />
                 <span>Simulate Storm</span>
               </>
             )}
@@ -94,16 +93,16 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
           <button
             onClick={handleReset}
             title="Reset to current observation"
-            className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-stone-400 hover:text-white border border-white/[0.07] transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-stone-400 hover:text-white border border-white/[0.07] transition-colors cursor-pointer"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Slider Bar */}
       <div className="relative pt-1">
-        <div className="h-2 w-full rounded-lg bg-gradient-to-r from-sky-500/20 via-indigo-500/20 to-purple-500/20 p-0.5 border border-white/[0.06] flex items-center">
+        <div className="h-2.5 w-full rounded-lg bg-gradient-to-r from-sky-500/20 via-indigo-500/20 to-purple-500/20 p-0.5 border border-white/[0.06] flex items-center">
           <input
             type="range"
             min={0}
@@ -114,12 +113,12 @@ export const TimelineScrubber: React.FC<TimelineScrubberProps> = ({
               setIsPlaying(false);
               onChange(Number(e.target.value));
             }}
-            className="w-full h-1.5 bg-transparent appearance-none cursor-pointer accent-sky-400"
+            className="w-full h-2 bg-transparent appearance-none cursor-pointer accent-sky-400"
           />
         </div>
 
         {/* Ticks & Major Milestones */}
-        <div className="flex justify-between text-[10px] text-stone-500 font-mono pt-2">
+        <div className="flex justify-between text-xs text-stone-400 font-mono pt-2">
           <span className={currentHourOffset === 0 ? "text-sky-300 font-semibold" : ""}>T0 (Now)</span>
           <span>+12h</span>
           <span className={currentHourOffset >= 21 && currentHourOffset <= 27 ? "text-indigo-300 font-semibold" : ""}>

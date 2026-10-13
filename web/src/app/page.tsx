@@ -20,7 +20,7 @@ import {
   TableProperties,
   LayoutGrid,
   Sparkles,
-  Terminal,
+  Mountain,
 } from "lucide-react";
 
 // Lazy load MapLibre GL component with ssr: false for fast initial bundle loading
@@ -29,8 +29,8 @@ const ResortMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[580px] rounded-3xl craft-card flex flex-col items-center justify-center text-stone-500 text-xs font-mono">
-        <Snowflake className="w-6 h-6 animate-spin text-sky-400 mb-2" />
+      <div className="w-full h-full min-h-[580px] rounded-3xl craft-card flex flex-col items-center justify-center text-stone-400 text-sm font-medium">
+        <Snowflake className="w-7 h-7 animate-spin text-sky-400 mb-2.5" />
         <span>Initializing Topographical Alpine Canvas...</span>
       </div>
     ),
@@ -212,7 +212,7 @@ export default function HomePage() {
   }, [resorts]);
 
   return (
-    <div className="relative min-h-screen bg-[#07080b] text-[#f4f3ef] flex flex-col font-sans selection:bg-sky-500/25 selection:text-sky-200 overflow-hidden topo-grid-bg">
+    <div className="relative min-h-screen bg-[#07080b] text-[#f4f3ef] flex flex-col font-sans selection:bg-sky-500/25 selection:text-sky-200 overflow-hidden topo-grid-bg text-sm">
       {/* Multi-colored Alpine Aurora Light Fields */}
       <div className="aurora-glow-primary" />
       <div className="aurora-glow-secondary" />
@@ -222,75 +222,75 @@ export default function HomePage() {
       <Toaster position="top-right" richColors theme="dark" />
 
       {/* Top Navigation Bar with Integrated View Tabs (GitHub / Apple style) */}
-      <header className="border-b hairline-border bg-[#07080b]/80 backdrop-blur-2xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Logo & Brand with NerdFont Badge */}
+      <header className="border-b hairline-border bg-[#07080b]/85 backdrop-blur-2xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
+          {/* Logo & Brand */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-purple-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 shadow-md shadow-sky-500/10">
-              <Snowflake className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-purple-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 shadow-md shadow-sky-500/10">
+              <Snowflake className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm tracking-tight text-[#f4f3ef]">
+                <span className="font-semibold text-base tracking-tight text-[#f4f3ef]">
                   PowderPredictor
                 </span>
-                <span className="text-[10px] text-sky-400 font-mono tracking-wider bg-sky-950/60 border border-sky-800/60 px-1.5 py-0.5 rounded">
-                  v2.0
+                <span className="text-xs text-sky-400 font-mono tracking-wider bg-sky-950/60 border border-sky-800/60 px-2 py-0.5 rounded">
+                  Northeast
                 </span>
               </div>
-              <span className="text-[10px] text-stone-500 font-mono tracking-wide uppercase block">
-                [λ_malr • 26 summits]
+              <span className="text-xs text-stone-400 font-medium block">
+                26 Northeast Summits
               </span>
             </div>
           </div>
 
           {/* Central Segmented View Mode Tabs */}
-          <nav className="flex items-center bg-white/[0.03] p-1 rounded-2xl border border-white/[0.08] text-xs shadow-inner">
+          <nav className="flex items-center bg-white/[0.04] p-1.5 rounded-2xl border border-white/[0.08] text-sm shadow-inner">
             <button
               onClick={() => handleTabChange("map")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
                 activeTab === "map"
                   ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-400 hover:text-white"
+                  : "text-stone-300 hover:text-white"
               }`}
             >
-              <MapIcon className="w-3.5 h-3.5" />
-              <span>Alpine Canvas</span>
+              <MapIcon className="w-4 h-4" />
+              <span>Alpine Map</span>
             </button>
             <button
               onClick={() => handleTabChange("bento")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
                 activeTab === "bento"
                   ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-400 hover:text-white"
+                  : "text-stone-300 hover:text-white"
               }`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-4 h-4" />
               <span>Regional Guide</span>
             </button>
             <button
               onClick={() => handleTabChange("matrix")}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-150 cursor-pointer ${
                 activeTab === "matrix"
                   ? "bg-gradient-to-r from-sky-500/90 to-indigo-600/90 text-white shadow-md shadow-sky-500/20 font-semibold"
-                  : "text-stone-400 hover:text-white"
+                  : "text-stone-300 hover:text-white"
               }`}
             >
-              <TableProperties className="w-3.5 h-3.5" />
+              <TableProperties className="w-4 h-4" />
               <span>Summit Matrix</span>
             </button>
           </nav>
 
           {/* Right Status / Origin Selector */}
-          <div className="flex items-center gap-2.5 text-xs shrink-0">
+          <div className="flex items-center gap-3 text-sm shrink-0">
             {/* Origin Metro Dropdown */}
-            <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.08] rounded-xl px-2.5 py-1 text-stone-300">
-              <MapPin className="w-3 h-3 text-sky-400" />
-              <span className="hidden lg:inline text-stone-500 text-[11px] font-mono">[⌘_orig]</span>
+            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-stone-200">
+              <MapPin className="w-4 h-4 text-sky-400" />
+              <span className="hidden lg:inline text-stone-400 text-xs font-medium">Origin:</span>
               <select
                 value={activeOrigin.id}
                 onChange={(e) => handleOriginChange(e.target.value)}
-                className="bg-transparent text-xs text-stone-200 focus:outline-none cursor-pointer"
+                className="bg-transparent text-sm text-stone-100 focus:outline-none cursor-pointer font-medium"
               >
                 {METRO_ORIGINS.map((orig) => (
                   <option key={orig.id} value={orig.id} className="bg-[#121318] text-stone-200">
@@ -301,61 +301,61 @@ export default function HomePage() {
             </div>
 
             {/* Live Telemetry Indicator */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-mono border bg-emerald-950/40 border-emerald-800/50 text-emerald-300">
-              <span className={`w-1.5 h-1.5 rounded-full ${sseConnected ? "bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" : "bg-stone-500"}`} />
-              <span className="hidden xl:inline">{sseConnected ? "⚡_live" : "⎈_mesh"}</span>
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-950/40 border-emerald-800/50 text-emerald-300">
+              <span className={`w-2 h-2 rounded-full ${sseConnected ? "bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" : "bg-stone-500"}`} />
+              <span className="hidden xl:inline">{sseConnected ? "Live Telemetry" : "Mesh Connected"}</span>
             </div>
 
             <button
               onClick={fetchForecasts}
               title="Refresh Forecast Telemetry"
-              className="p-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] text-stone-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-stone-300 hover:text-white transition-colors cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-sky-400" : ""}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-sky-400" : ""}`} />
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
-      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-7">
         {/* Editorial Narrative & Quick Metric Dock */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="text-[11px] font-mono tracking-wider uppercase text-sky-400 flex items-center gap-2">
-                <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-                <span>// MOIST ADIABATIC LAPSE RATE • DOWNSCALING ENGINE</span>
+        <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+            <div className="space-y-2">
+              <div className="text-xs font-semibold tracking-wider uppercase text-sky-400 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-indigo-400" />
+                <span>Atmospheric Lapse Rate &amp; Terrain Downscaling</span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-[#fbfbfa]">
-                Precision Alpine Weather &amp;{" "}
+              <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-[#fbfbfa] leading-tight">
+                Northeast Mountain Weather &amp;{" "}
                 <span className="bg-gradient-to-r from-sky-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
-                  Microclimate Sounding
+                  Alpine Microclimates
                 </span>
               </h1>
-              <p className="text-xs sm:text-sm text-stone-400 max-w-2xl leading-relaxed">
+              <p className="text-sm sm:text-base text-stone-300 max-w-3xl leading-relaxed">
                 Atmospheric lapse rates, freezing lines aloft, and leeward snowpack loading modeled across 26 Northeast summits in VT, NH, ME, NY, and MA.
               </p>
             </div>
 
-            {/* Quick Metrics Dock with NerdFont tags */}
-            <div className="flex flex-wrap items-center gap-2 craft-card p-1.5 rounded-2xl text-xs font-mono">
+            {/* Quick Metrics Dock */}
+            <div className="flex flex-wrap items-center gap-2.5 craft-card p-2 rounded-2xl text-sm font-medium">
               {topResort && (
                 <div
                   onClick={() => setSelectedResort(topResort)}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/10 to-indigo-500/10 border border-sky-500/20 hover:border-sky-400/40 cursor-pointer transition-all"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500/15 to-indigo-500/15 border border-sky-500/30 hover:border-sky-400/50 cursor-pointer transition-all"
                 >
-                  <span className="text-[10px] text-sky-400 block font-medium">[λ_focal]</span>
-                  <span className="text-stone-100 font-semibold">{topResort.name} ({topResort.powderScore} pts)</span>
+                  <span className="text-xs text-sky-300 block font-semibold uppercase">Top Target</span>
+                  <span className="text-white font-bold">{topResort.name} ({topResort.powderScore} pts)</span>
                 </div>
               )}
-              <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <span className="text-[10px] text-stone-400 block font-medium">[⌘_frz]</span>
-                <span className="text-stone-200 font-semibold">{avgFreezingLevel.toLocaleString()}&apos; MSL</span>
+              <div className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <span className="text-xs text-stone-400 block font-semibold uppercase">Freezing Line</span>
+                <span className="text-stone-100 font-bold">{avgFreezingLevel.toLocaleString()}&apos; MSL</span>
               </div>
-              <div className="px-3 py-1.5 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                <span className="text-[10px] text-stone-400 block font-medium">[⌥_slr]</span>
-                <span className="text-stone-200 font-semibold">{avgSLR}:1</span>
+              <div className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                <span className="text-xs text-stone-400 block font-semibold uppercase">Snow Density</span>
+                <span className="text-stone-100 font-bold">{avgSLR}:1 SLR</span>
               </div>
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function HomePage() {
         {/* View Content (Dynamic based on activeTab) */}
         <div>
           {activeTab === "map" && (
-            <section className="w-full h-[640px]">
+            <section className="w-full h-[660px]">
               <ResortMap
                 resorts={resorts}
                 selectedResortId={selectedResort?.resortId}
@@ -400,15 +400,15 @@ export default function HomePage() {
           )}
 
           {activeTab === "matrix" && (
-            <section className="w-full space-y-3">
+            <section className="w-full space-y-4">
               <div className="flex justify-between items-center px-1">
-                <h3 className="text-xs font-mono font-medium text-stone-300 uppercase tracking-wider flex items-center gap-2">
-                  <span className="text-sky-400">[⌘_directory]</span>
+                <h3 className="text-sm font-semibold text-stone-200 uppercase tracking-wider flex items-center gap-2">
+                  <Mountain className="w-4 h-4 text-sky-400" />
                   <span>26-Mountain Comparative Matrix</span>
                 </h3>
                 {lastSyncTime && (
-                  <span className="text-[11px] text-stone-500 font-mono">
-                    Synced: {lastSyncTime}
+                  <span className="text-xs text-stone-400 font-mono">
+                    Updated {lastSyncTime}
                   </span>
                 )}
               </div>
@@ -433,9 +433,13 @@ export default function HomePage() {
       />
 
       {/* Editorial Footer */}
-      <footer className="border-t hairline-border bg-[#07080b]/90 py-8 text-center text-xs text-stone-500 mt-16 font-mono">
-        <p>PowderPredictor • Meteorological downscaling &amp; alpine snowpack modeling for the Northeast Appalachian ranges.</p>
-        <p className="text-[10px] text-stone-600 mt-1">[λ_malr • ⎈_kubernetes operator • ⚡_hrrr/gfs]</p>
+      <footer className="border-t hairline-border bg-[#07080b]/90 py-10 text-center text-sm text-stone-400 mt-20">
+        <p className="font-medium text-stone-300">
+          PowderPredictor • Meteorological downscaling &amp; alpine snowpack modeling for the Northeast Appalachian ranges.
+        </p>
+        <p className="text-xs text-stone-500 mt-1.5">
+          Real-time NOAA Soundings, USDA SNOTEL Snowpacks, and Orographic Microclimates across VT, NH, ME, NY, and MA.
+        </p>
       </footer>
     </div>
   );

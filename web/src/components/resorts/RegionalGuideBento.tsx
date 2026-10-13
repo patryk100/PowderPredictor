@@ -92,16 +92,16 @@ export const RegionalGuideBento: React.FC<RegionalGuideBentoProps> = ({
       {/* Intro Subheading */}
       <div className="px-1 flex justify-between items-end">
         <div>
-          <h3 className="text-sm font-mono font-medium uppercase tracking-wider text-stone-300 flex items-center gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-stone-200 flex items-center gap-2">
             <Compass className="w-4 h-4 text-sky-400" />
-            <span>[λ_ranges] Regional Alpine Sounding Directory</span>
+            <span>Regional Alpine Sounding Directory</span>
           </h3>
-          <p className="text-xs text-stone-400 mt-1">
+          <p className="text-xs sm:text-sm text-stone-400 mt-1">
             Northeast ski terrain organized by distinct meteorological corridors and geological ranges.
           </p>
         </div>
-        <span className="text-xs font-mono text-stone-500 hidden sm:inline">
-          [26 active weather stations]
+        <span className="text-xs font-mono text-stone-400 hidden sm:inline">
+          26 active weather stations
         </span>
       </div>
 
@@ -129,28 +129,28 @@ export const RegionalGuideBento: React.FC<RegionalGuideBentoProps> = ({
                       <h4 className="text-base font-semibold text-white tracking-tight">
                         {group.name}
                       </h4>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border uppercase ${group.stateBadgeColor}`}>
+                      <span className={`text-xs font-mono px-2 py-0.5 rounded-full border uppercase ${group.stateBadgeColor}`}>
                         {group.stateCode}
                       </span>
                     </div>
-                    <p className="text-xs text-stone-400 mt-1 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-stone-300 mt-1 leading-relaxed">
                       {group.subheading}
                     </p>
                   </div>
 
                   {topGroupResort && (
                     <div className="text-right">
-                      <span className="text-[10px] text-sky-400 block uppercase tracking-wider font-mono">
-                        [Top Pick]
+                      <span className="text-xs text-sky-400 block uppercase tracking-wider font-semibold">
+                        Top Target:
                       </span>
-                      <span className="font-mono text-xs font-semibold text-white">
+                      <span className="font-mono text-sm font-semibold text-white">
                         {topGroupResort.name} ({topGroupResort.powderScore})
                       </span>
                     </div>
                   )}
                 </div>
 
-                <p className="text-[11px] text-stone-400 font-mono mt-2.5 pt-2 border-t hairline-border">
+                <p className="text-xs text-stone-400 font-mono mt-2.5 pt-2 border-t hairline-border">
                   {group.geographyNote}
                 </p>
               </div>
