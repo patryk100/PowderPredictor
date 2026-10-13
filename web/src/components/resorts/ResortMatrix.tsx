@@ -73,11 +73,13 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
           return false;
         }
       } else if (selectedPersona === "wind_avoider") {
-        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35) {
+        const hasSnow = (r.snowfall48hInches ?? r.predictedSnowfallInches) >= 2.0 || r.baseDepthInches >= 12 || r.powderScore >= 40;
+        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35 || !hasSnow) {
           return false;
         }
       } else if (selectedPersona === "bluebird_cruiser") {
-        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk) {
+        const hasBase = r.baseDepthInches >= 12 || r.powderScore >= 40 || (r.snowfall48hInches ?? r.predictedSnowfallInches) >= 1.0;
+        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk || !hasBase) {
           return false;
         }
       }

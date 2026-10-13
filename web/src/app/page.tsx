@@ -238,11 +238,15 @@ export default function HomePage() {
           return false;
         }
       } else if (selectedPersona === "wind_avoider") {
-        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35) {
+        // Must be wind protected AND have rideable conditions (not a barren/dry mountain)
+        const hasSnow = (r.snowfall48hInches ?? r.predictedSnowfallInches) >= 2.0 || r.baseDepthInches >= 12 || r.powderScore >= 40;
+        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35 || !hasSnow) {
           return false;
         }
       } else if (selectedPersona === "bluebird_cruiser") {
-        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk) {
+        // Calm skies and good snow base without crust
+        const hasBase = r.baseDepthInches >= 12 || r.powderScore >= 40 || (r.snowfall48hInches ?? r.predictedSnowfallInches) >= 1.0;
+        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk || !hasBase) {
           return false;
         }
       }

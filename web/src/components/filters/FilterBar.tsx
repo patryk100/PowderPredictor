@@ -44,7 +44,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       id: "wind_avoider",
       label: "Wind Protected",
       icon: <Wind className="w-3.5 h-3.5 text-amber-300" />,
-      desc: "Summit gusts ≤35 mph • No wind hold",
+      desc: "Gusts ≤35 mph • No wind hold • Snow >2\" or Score ≥40",
       activeClass: "bg-amber-950/50 border-amber-400/50 text-amber-100 shadow-md shadow-amber-500/15",
     },
     {
