@@ -22,6 +22,9 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the powderpredictor itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- snowforecastreport_admin_role.yaml
+- snowforecastreport_editor_role.yaml
+- snowforecastreport_viewer_role.yaml
 - resorttarget_admin_role.yaml
 - resorttarget_editor_role.yaml
 - resorttarget_viewer_role.yaml

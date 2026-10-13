@@ -51,34 +51,57 @@ var _ = Describe("ResortTarget Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: weatherv1alpha1.ResortTargetSpec{
+						Latitude:          44.5303,
+						Longitude:         -72.7814,
+						SummitElevationFt: 4395,
+						BaseElevationFt:   1280,
+						Region:            "VT",
+						SyncInterval:      "30m",
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
 
 		AfterEach(func() {
-			// TODO(user): Cleanup logic after each test, like removing the resource instance.
 			resource := &weatherv1alpha1.ResortTarget{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Cleanup the specific resource instance ResortTarget")
-			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+			if err == nil {
+				By("Cleanup the specific resource instance ResortTarget")
+				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
+			}
 		})
-		It("should successfully reconcile the resource", func() {
+
+		It("should successfully reconcile the resource and set status conditions without mutating generation", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &ResortTargetReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
 			}
 
+			// Capture generation prior to status reconcile
+			preTarget := &weatherv1alpha1.ResortTarget{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, preTarget)).To(Succeed())
+			initialGeneration := preTarget.Generation
+
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			// Verify status condition is populated
+			reconciledTarget := &weatherv1alpha1.ResortTarget{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, reconciledTarget)).To(Succeed())
+			Expect(reconciledTarget.Status.Conditions).NotTo(BeEmpty())
+
+			readyCondition := reconciledTarget.Status.Conditions[0]
+			Expect(readyCondition.Type).To(Equal(weatherv1alpha1.ConditionTypeReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+
+			// Verify generation was NOT incremented by status update
+			Expect(reconciledTarget.Generation).To(Equal(initialGeneration))
+			Expect(reconciledTarget.Status.ObservedGeneration).To(Equal(initialGeneration))
 		})
 	})
 })

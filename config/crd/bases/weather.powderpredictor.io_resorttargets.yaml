@@ -120,6 +120,21 @@ spec:
           status:
             description: status defines the observed state of ResortTarget
             properties:
+              activeReportRef:
+                description: ActiveReportRef references the latest active SnowForecastReport
+                  custom resource
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
               conditions:
                 description: Conditions represent the current service conditions of
                   the target reconciliation
@@ -181,6 +196,11 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              ingestionBackoffCount:
+                default: 0
+                description: IngestionBackoffCount tracks consecutive upstream failure
+                  retries for backoff scheduling
+                type: integer
               lastSyncTime:
                 description: LastSyncTime is the timestamp of the last successful
                   atmospheric ingestion

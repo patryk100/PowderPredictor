@@ -8,6 +8,7 @@ rules:
   - weather.powderpredictor.io
   resources:
   - resorttargets
+  - snowforecastreports
   verbs:
   - create
   - delete
@@ -26,6 +27,7 @@ rules:
   - weather.powderpredictor.io
   resources:
   - resorttargets/status
+  - snowforecastreports/status
   verbs:
   - get
   - patch

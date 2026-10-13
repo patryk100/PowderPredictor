@@ -1,0 +1,37 @@
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: SnowForecastReport
+metadata:
+  name: killington-forecast-sample
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powderpredictor
+    app.kubernetes.io/part-of: powderpredictor
+spec:
+  resortRef:
+    name: killington
+  windowStart: "2026-10-15T00:00:00Z"
+  windowEnd: "2026-10-16T12:00:00Z"
+  predictedSnowfallInches: 14.5
+  snowToLiquidRatio: 16.0
+  freezingLevelElevationFt: 1800
+  powderScore: 92
+  confidenceInterval: 85.5
+---
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: SnowForecastReport
+metadata:
+  name: jay-peak-forecast-sample
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powderpredictor
+    app.kubernetes.io/part-of: powderpredictor
+spec:
+  resortRef:
+    name: jay-peak
+  windowStart: "2026-10-15T00:00:00Z"
+  windowEnd: "2026-10-16T12:00:00Z"
+  predictedSnowfallInches: 18.0
+  snowToLiquidRatio: 18.5
+  freezingLevelElevationFt: 1200
+  powderScore: 98
+  confidenceInterval: 90.0

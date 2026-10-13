@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -81,6 +82,27 @@ type ResortTargetSpec struct {
 	SyncInterval string `json:"syncInterval,omitempty"`
 }
 
+// Well-known Condition Types for ResortTarget conforming to KEP-1623
+const (
+	// ConditionTypeReady indicates all weather dependencies are operational and latest forecast is computed
+	ConditionTypeReady = "Ready"
+
+	// ConditionTypeStale indicates the elapsed time since LastSyncTime exceeds the sync threshold
+	ConditionTypeStale = "Stale"
+
+	// ConditionTypeProviderDegraded indicates upstream meteorological APIs failed or returned rate limits
+	ConditionTypeProviderDegraded = "ProviderDegraded"
+)
+
+// Well-known Condition Reasons
+const (
+	ReasonSyncSuccess         = "SyncSuccess"
+	ReasonSyncFailed          = "SyncFailed"
+	ReasonRateLimited         = "RateLimited"
+	ReasonSyncIntervalElapsed = "SyncIntervalElapsed"
+	ReasonReconciliationError = "ReconciliationError"
+)
+
 // ResortTargetStatus defines the observed state of ResortTarget.
 type ResortTargetStatus struct {
 	// LastSyncTime is the timestamp of the last successful atmospheric ingestion
@@ -90,6 +112,15 @@ type ResortTargetStatus struct {
 	// ObservedGeneration represents the .metadata.generation that was reconciled
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ActiveReportRef references the latest active SnowForecastReport custom resource
+	// +optional
+	ActiveReportRef *corev1.LocalObjectReference `json:"activeReportRef,omitempty"`
+
+	// IngestionBackoffCount tracks consecutive upstream failure retries for backoff scheduling
+	// +kubebuilder:default=0
+	// +optional
+	IngestionBackoffCount int `json:"ingestionBackoffCount,omitempty"`
 
 	// Conditions represent the current service conditions of the target reconciliation
 	// +listType=map
