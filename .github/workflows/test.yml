@@ -2,22 +2,37 @@ name: Tests
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
 
 jobs:
   test:
-    name: Run on Ubuntu
+    name: Unit & Integration Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Clone the code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
-      - name: Running Tests
+      - name: Verify code generation and manifests
         run: |
-          go mod tidy
+          make manifests generate
+          git diff --exit-code || { echo "Generated files or manifests out of sync. Run 'make manifests generate'"; exit 1; }
+
+      - name: Run Unit & Controller Tests
+        run: |
           make test
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: cover.out
+          if-no-files-found: ignore
