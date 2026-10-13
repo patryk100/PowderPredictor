@@ -285,40 +285,40 @@ export default function HomePage() {
       {/* Toast Alert Pipeline */}
       <Toaster position="top-right" richColors theme="dark" />
 
-      {/* Top Navigation Bar with Integrated View Tabs (GitHub / Apple style) */}
-      <header className="border-b hairline-border bg-[#07080b]/85 backdrop-blur-2xl sticky top-0 z-40">
+      {/* Top Navigation Bar with Lighter Frosted Ice-Glass Surface */}
+      <header className="border-b border-white/[0.12] bg-[#141721]/80 backdrop-blur-3xl sticky top-0 z-40 shadow-lg shadow-black/20">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-14 xl:px-16 h-20 flex items-center justify-between gap-6">
           {/* Logo & Brand */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500/20 via-indigo-500/20 to-purple-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 shadow-md shadow-sky-500/10">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400/25 via-indigo-400/20 to-purple-400/25 border border-sky-300/40 flex items-center justify-center text-sky-200 shadow-md shadow-sky-500/15">
               <Snowflake className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-base tracking-tight text-[#f4f3ef]">
+                <span className="font-semibold text-base tracking-tight text-white">
                   PowderPredictor
                 </span>
-                <span className="text-xs text-sky-400 font-mono tracking-wider bg-sky-950/60 border border-sky-800/60 px-2 py-0.5 rounded">
+                <span className="text-xs text-sky-300 font-mono tracking-wider bg-sky-900/60 border border-sky-600/50 px-2 py-0.5 rounded">
                   Northeast
                 </span>
               </div>
-              <span className="text-xs text-stone-400 font-medium block">
+              <span className="text-xs text-stone-300 font-medium block">
                 26 Northeast Summits
               </span>
             </div>
           </div>
 
-          {/* Central Segmented View Mode Tabs (Apple / Ellipsus sleek craft styling) */}
-          <nav className="flex items-center bg-[#0d0e14]/90 p-1 rounded-2xl border border-white/[0.08] text-xs sm:text-sm shadow-xl backdrop-blur-md">
+          {/* Central Segmented View Mode Tabs */}
+          <nav className="flex items-center bg-[#1d2230]/90 p-1.5 rounded-2xl border border-white/[0.12] text-xs sm:text-sm shadow-inner backdrop-blur-md">
             <button
               onClick={() => handleTabChange("map")}
               className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "map"
-                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
-                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
+                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
               }`}
             >
-              <MapIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "map" ? "text-sky-400" : "text-stone-400"}`} />
+              <MapIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "map" ? "text-sky-300" : "text-stone-300"}`} />
               <span>Alpine Map</span>
               {activeTab === "map" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-sm shadow-sky-400 shrink-0" />
@@ -328,11 +328,11 @@ export default function HomePage() {
               onClick={() => handleTabChange("bento")}
               className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "bento"
-                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
-                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
+                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
               }`}
             >
-              <LayoutGrid className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "bento" ? "text-indigo-400" : "text-stone-400"}`} />
+              <LayoutGrid className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "bento" ? "text-indigo-300" : "text-stone-300"}`} />
               <span>Regional Guide</span>
               {activeTab === "bento" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400 shrink-0" />
@@ -342,11 +342,11 @@ export default function HomePage() {
               onClick={() => handleTabChange("matrix")}
               className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "matrix"
-                  ? "bg-white/[0.12] text-white shadow-sm border border-white/[0.15] font-semibold"
-                  : "text-stone-400 hover:text-stone-200 hover:bg-white/[0.04] border border-transparent"
+                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
               }`}
             >
-              <TableProperties className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "matrix" ? "text-purple-400" : "text-stone-400"}`} />
+              <TableProperties className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "matrix" ? "text-purple-300" : "text-stone-300"}`} />
               <span>Summit Matrix</span>
               {activeTab === "matrix" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm shadow-purple-400 shrink-0" />
@@ -357,16 +357,16 @@ export default function HomePage() {
           {/* Right Status / Origin Selector */}
           <div className="flex items-center gap-3 text-sm shrink-0">
             {/* Origin Metro Dropdown */}
-            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5 text-stone-200">
+            <div className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.12] rounded-xl px-3 py-1.5 text-stone-100 shadow-sm">
               <MapPin className="w-4 h-4 text-sky-400" />
-              <span className="hidden lg:inline text-stone-400 text-xs font-medium">Origin:</span>
+              <span className="hidden lg:inline text-stone-300 text-xs font-medium">Origin:</span>
               <select
                 value={activeOrigin.id}
                 onChange={(e) => handleOriginChange(e.target.value)}
                 className="bg-transparent text-sm text-stone-100 focus:outline-none cursor-pointer font-medium"
               >
                 {METRO_ORIGINS.map((orig) => (
-                  <option key={orig.id} value={orig.id} className="bg-[#121318] text-stone-200">
+                  <option key={orig.id} value={orig.id} className="bg-[#181c26] text-stone-100">
                     {orig.name}
                   </option>
                 ))}
