@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Map, NavigationControl, Marker } from "maplibre-gl";
 import { ResortForecast } from "@/types/resort";
 import { getSnowfallColor } from "@/lib/geo";
-import { Mountain, Snowflake, Maximize2 } from "lucide-react";
+import { Mountain, Snowflake, Maximize2, Layers } from "lucide-react";
 
 interface ResortMapProps {
   resorts: ResortForecast[];
@@ -12,31 +12,102 @@ interface ResortMapProps {
   onSelectResort?: (resort: ResortForecast) => void;
 }
 
-// Built-in standalone style using Carto Dark raster tiles (no external JSON/font dependencies, 100% reliable)
-const DARK_MATTER_STYLE: any = {
-  version: 8,
-  sources: {
-    "carto-dark": {
-      type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
-        "https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
-      ],
-      tileSize: 256,
-      attribution: "&copy; OpenStreetMap &copy; CARTO",
+// Tile Styles (100% Free, Public Domain / No API Key Required)
+const MAP_STYLES: Record<string, any> = {
+  dark: {
+    version: 8,
+    sources: {
+      "esri-dark-base": {
+        type: "raster",
+        tiles: [
+          "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+        attribution: "Esri, DeLorme, NAVTEQ",
+      },
+      "esri-dark-labels": {
+        type: "raster",
+        tiles: [
+          "https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+      },
     },
+    layers: [
+      {
+        id: "dark-base-layer",
+        type: "raster",
+        source: "esri-dark-base",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+      {
+        id: "dark-labels-layer",
+        type: "raster",
+        source: "esri-dark-labels",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
   },
-  layers: [
-    {
-      id: "carto-dark-layer",
-      type: "raster",
-      source: "carto-dark",
-      minzoom: 0,
-      maxzoom: 19,
+  topo: {
+    version: 8,
+    sources: {
+      "usgs-topo": {
+        type: "raster",
+        tiles: [
+          "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+        attribution: "USGS The National Map",
+      },
     },
-  ],
+    layers: [
+      {
+        id: "topo-layer",
+        type: "raster",
+        source: "usgs-topo",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
+  },
+  satellite: {
+    version: 8,
+    sources: {
+      "esri-imagery": {
+        type: "raster",
+        tiles: [
+          "https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+        attribution: "Esri, Maxar, Earthstar Geographics",
+      },
+      "esri-imagery-labels": {
+        type: "raster",
+        tiles: [
+          "https://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        ],
+        tileSize: 256,
+      },
+    },
+    layers: [
+      {
+        id: "satellite-layer",
+        type: "raster",
+        source: "esri-imagery",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+      {
+        id: "satellite-labels-layer",
+        type: "raster",
+        source: "esri-imagery-labels",
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
+  },
 };
 
 export const ResortMap: React.FC<ResortMapProps> = ({
@@ -49,6 +120,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   const markersRef = useRef<{ [id: string]: Marker }>({});
 
   const [hoveredResort, setHoveredResort] = useState<ResortForecast | null>(null);
+  const [activeBaseLayer, setActiveBaseLayer] = useState<"dark" | "topo" | "satellite">("dark");
   const [mapLoaded, setMapLoaded] = useState<boolean>(false);
 
   // Initialize MapLibre GL
@@ -57,14 +129,14 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
     const mapInstance = new Map({
       container: mapContainer.current,
-      style: DARK_MATTER_STYLE,
+      style: MAP_STYLES.dark,
       center: [-72.5, 43.8],
       zoom: 6.8,
       minZoom: 5.2,
       maxZoom: 14,
       maxBounds: [
-        [-76.8, 39.8], // Southwest bounds
-        [-66.2, 47.6], // Northeast bounds
+        [-76.8, 39.8], // Southwest bounds (PA/NY/NJ border)
+        [-66.2, 47.6], // Northeast bounds (Northern Maine / Canada)
       ],
       attributionControl: false,
     });
@@ -76,10 +148,10 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       mapInstance.resize();
     });
 
-    // Also trigger resize right after mount
+    // Ensure resizing once DOM settles
     setTimeout(() => {
       mapInstance.resize();
-    }, 200);
+    }, 150);
 
     map.current = mapInstance;
 
@@ -96,6 +168,14 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       map.current = null;
     };
   }, []);
+
+  // Switch Base Layer
+  const handleLayerSwitch = (layerKey: "dark" | "topo" | "satellite") => {
+    setActiveBaseLayer(layerKey);
+    if (map.current) {
+      map.current.setStyle(MAP_STYLES[layerKey]);
+    }
+  };
 
   // Center/Fly to selected resort smoothly
   useEffect(() => {
@@ -174,7 +254,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
       markersRef.current[resort.resortId] = marker;
     });
-  }, [resorts, selectedResortId, mapLoaded, onSelectResort]);
+  }, [resorts, selectedResortId, mapLoaded, activeBaseLayer, onSelectResort]);
 
   const resetView = useCallback(() => {
     map.current?.flyTo({
@@ -189,15 +269,50 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       {/* MapLibre WebGL Canvas Container */}
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Map Control Shortcuts (Reset Zoom) */}
+      {/* Map Controls: Layer Switcher & Reset Zoom */}
       <div className="absolute top-4 right-14 z-20 flex items-center gap-2">
+        {/* Layer Selector Chips */}
+        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 shadow-xl text-xs">
+          <button
+            onClick={() => handleLayerSwitch("dark")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              activeBaseLayer === "dark"
+                ? "bg-cyan-500 text-slate-950 shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Dark
+          </button>
+          <button
+            onClick={() => handleLayerSwitch("topo")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              activeBaseLayer === "topo"
+                ? "bg-cyan-500 text-slate-950 shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            USGS Topo
+          </button>
+          <button
+            onClick={() => handleLayerSwitch("satellite")}
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+              activeBaseLayer === "satellite"
+                ? "bg-cyan-500 text-slate-950 shadow-sm"
+                : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Satellite
+          </button>
+        </div>
+
+        {/* Reset View Button */}
         <button
           onClick={resetView}
           title="Reset Northeast View"
-          className="bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white p-2 rounded-lg border border-slate-700/80 backdrop-blur-md shadow-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white p-2 rounded-xl border border-slate-700/80 backdrop-blur-md shadow-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
         >
           <Maximize2 className="w-3.5 h-3.5 text-cyan-400" />
-          <span className="font-semibold hidden sm:inline">Fit Region</span>
+          <span className="font-semibold hidden sm:inline">Fit</span>
         </button>
       </div>
 
