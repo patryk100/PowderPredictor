@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { Map, NavigationControl, Marker } from "maplibre-gl";
+import { Map, NavigationControl, Marker, setWorkerUrl } from "maplibre-gl";
+
+// Point MapLibre to self-hosted worker in /public to avoid bundler/Turbopack worker loader issues
+if (typeof window !== "undefined") {
+  setWorkerUrl("/maplibre-gl-worker.mjs");
+}
 import { ResortForecast } from "@/types/resort";
 import { getSnowfallColor, getPowderScoreBadge } from "@/lib/geo";
 import { Mountain, Snowflake, Maximize2, Compass, Clock, ChevronRight, X } from "lucide-react";
