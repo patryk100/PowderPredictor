@@ -224,17 +224,46 @@ export default function HomePage() {
     fetchForecasts();
   }, [fetchForecasts]);
 
+  // Filtered resorts based on active Persona Preset and Pass Alliance selections
+  const filteredResorts = useMemo(() => {
+    return resorts.filter((r) => {
+      // Pass Multi-Select
+      if (selectedPasses.length > 0 && !selectedPasses.includes(r.passType)) {
+        return false;
+      }
+
+      // Persona Filters
+      if (selectedPersona === "glade_hunter") {
+        if (r.powderScore < 80 || r.snowToLiquidRatio < 14.0 || r.baseDepthInches < 24) {
+          return false;
+        }
+      } else if (selectedPersona === "wind_avoider") {
+        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35) {
+          return false;
+        }
+      } else if (selectedPersona === "bluebird_cruiser") {
+        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [resorts, selectedPasses, selectedPersona]);
+
   // Aggregate summary stats
   const topResort = useMemo(() => {
-    if (resorts.length === 0) return null;
-    return [...resorts].sort((a, b) => b.powderScore - a.powderScore)[0];
-  }, [resorts]);
+    const list = filteredResorts.length > 0 ? filteredResorts : resorts;
+    if (list.length === 0) return null;
+    return [...list].sort((a, b) => b.powderScore - a.powderScore)[0];
+  }, [filteredResorts, resorts]);
 
   const avgSLR = useMemo(() => {
-    if (resorts.length === 0) return 0;
-    const sum = resorts.reduce((acc, r) => acc + r.snowToLiquidRatio, 0);
-    return (sum / resorts.length).toFixed(1);
-  }, [resorts]);
+    const list = filteredResorts.length > 0 ? filteredResorts : resorts;
+    if (list.length === 0) return 0;
+    const sum = list.reduce((acc, r) => acc + r.snowToLiquidRatio, 0);
+    return (sum / list.length).toFixed(1);
+  }, [filteredResorts, resorts]);
 
   const avgFreezingLevel = useMemo(() => {
     if (resorts.length === 0) return 5800;
@@ -440,7 +469,7 @@ export default function HomePage() {
           {activeTab === "map" && (
             <section className="w-full h-[660px]">
               <ResortMap
-                resorts={resorts}
+                resorts={filteredResorts}
                 selectedResortId={selectedResort?.resortId}
                 onSelectResort={(r) => setSelectedResort(r)}
                 hourOffset={scrubHour}
@@ -451,7 +480,7 @@ export default function HomePage() {
           {activeTab === "bento" && (
             <section className="w-full">
               <RegionalGuideBento
-                resorts={resorts}
+                resorts={filteredResorts}
                 onSelectResort={(r) => setSelectedResort(r)}
                 hourOffset={scrubHour}
               />
