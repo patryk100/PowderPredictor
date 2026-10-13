@@ -1,8 +1,9 @@
 @import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #090d16;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -12,15 +13,58 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: #090d16;
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom MapLibre styling overrides to ensure crisp rendering */
+.maplibregl-map {
+  font-family: inherit;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
+
+.maplibregl-ctrl-group {
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(51, 65, 85, 0.6) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+}
+
+.maplibregl-ctrl-group button {
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4) !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+.maplibregl-ctrl-icon {
+  filter: invert(1) brightness(1.2);
+}
+
+/* Glassmorphic card styling utilities */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.45);
+}
+
+.glass-panel-glow {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.15);
 }

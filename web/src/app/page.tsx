@@ -1,196 +1,53 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { ResortForecast, ForecastResponse, UserOrigin } from "@/types/resort";
 import { calculateDistanceMiles, estimateDriveTime } from "@/lib/geo";
+import { METRO_ORIGINS, COMPREHENSIVE_NORTHEAST_RESORTS } from "@/lib/resortData";
 import { ResortMap } from "@/components/map/ResortMap";
 import { ResortMatrix } from "@/components/resorts/ResortMatrix";
-import { Snowflake, Radio, RefreshCw, MapPin, Zap } from "lucide-react";
-
-// Default reference origin: Arlington / Boston, MA metro
-const DEFAULT_ORIGIN: UserOrigin = {
-  name: "Arlington / Boston, MA",
-  latitude: 42.4154,
-  longitude: -71.1565,
-};
-
-// Fallback initial dataset if gateway is in cold boot
-const INITIAL_DEMO_RESORTS: ResortForecast[] = [
-  {
-    resortId: "jay-peak",
-    name: "Jay Peak",
-    region: "VT",
-    passType: "Indy",
-    latitude: 44.9248,
-    longitude: -72.5034,
-    summitFt: 3968,
-    baseFt: 1815,
-    verticalFt: 2153,
-    skiableAcres: 385,
-    powderScore: 98,
-    confidenceInterval: 92,
-    predictedSnowfallInches: 18.0,
-    snowfall24hInches: 11.0,
-    snowfall48hInches: 18.0,
-    snowToLiquidRatio: 18.5,
-    freezingLevelElevationFt: 1200,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: true,
-    windHoldWarning: false,
-    crustRisk: false,
-    baseDepthInches: 42,
-  },
-  {
-    resortId: "stowe",
-    name: "Stowe Mountain Resort",
-    region: "VT",
-    passType: "Epic",
-    latitude: 44.5303,
-    longitude: -72.7814,
-    summitFt: 4395,
-    baseFt: 1280,
-    verticalFt: 3115,
-    skiableAcres: 485,
-    powderScore: 84,
-    confidenceInterval: 88,
-    predictedSnowfallInches: 11.5,
-    snowfall24hInches: 7.0,
-    snowfall48hInches: 11.5,
-    snowToLiquidRatio: 15.2,
-    freezingLevelElevationFt: 1450,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: true,
-    windHoldWarning: true,
-    crustRisk: false,
-    baseDepthInches: 38,
-  },
-  {
-    resortId: "sugarloaf",
-    name: "Sugarloaf",
-    region: "ME",
-    passType: "Ikon",
-    latitude: 45.0314,
-    longitude: -70.3131,
-    summitFt: 4237,
-    baseFt: 1417,
-    verticalFt: 2820,
-    skiableAcres: 1240,
-    powderScore: 78,
-    confidenceInterval: 85,
-    predictedSnowfallInches: 8.5,
-    snowfall24hInches: 5.0,
-    snowfall48hInches: 8.5,
-    snowToLiquidRatio: 14.0,
-    freezingLevelElevationFt: 1800,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: false,
-    windHoldWarning: true,
-    crustRisk: false,
-    baseDepthInches: 35,
-  },
-  {
-    resortId: "killington",
-    name: "Killington Resort",
-    region: "VT",
-    passType: "Ikon",
-    latitude: 43.6263,
-    longitude: -72.7969,
-    summitFt: 4241,
-    baseFt: 1165,
-    verticalFt: 3076,
-    skiableAcres: 1509,
-    powderScore: 68,
-    confidenceInterval: 94,
-    predictedSnowfallInches: 6.2,
-    snowfall24hInches: 3.5,
-    snowfall48hInches: 6.2,
-    snowToLiquidRatio: 12.0,
-    freezingLevelElevationFt: 2100,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: false,
-    windHoldWarning: false,
-    crustRisk: false,
-    baseDepthInches: 32,
-  },
-  {
-    resortId: "wildcat",
-    name: "Wildcat Mountain",
-    region: "NH",
-    passType: "Epic",
-    latitude: 44.2639,
-    longitude: -71.2392,
-    summitFt: 4062,
-    baseFt: 1950,
-    verticalFt: 2112,
-    skiableAcres: 225,
-    powderScore: 72,
-    confidenceInterval: 82,
-    predictedSnowfallInches: 7.8,
-    snowfall24hInches: 4.5,
-    snowfall48hInches: 7.8,
-    snowToLiquidRatio: 13.5,
-    freezingLevelElevationFt: 1750,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: false,
-    windHoldWarning: true,
-    crustRisk: false,
-    baseDepthInches: 30,
-  },
-  {
-    resortId: "whiteface",
-    name: "Whiteface Mountain",
-    region: "NY",
-    passType: "Independent",
-    latitude: 44.3659,
-    longitude: -73.9026,
-    summitFt: 4867,
-    baseFt: 1220,
-    verticalFt: 3430,
-    skiableAcres: 288,
-    powderScore: 55,
-    confidenceInterval: 79,
-    predictedSnowfallInches: 4.0,
-    snowfall24hInches: 2.0,
-    snowfall48hInches: 4.0,
-    snowToLiquidRatio: 11.0,
-    freezingLevelElevationFt: 2600,
-    windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    gladesRecommended: false,
-    windHoldWarning: true,
-    crustRisk: true,
-    baseDepthInches: 28,
-  },
-];
+import { ResortDetailDrawer } from "@/components/resorts/ResortDetailDrawer";
+import {
+  Snowflake,
+  Radio,
+  RefreshCw,
+  MapPin,
+  Zap,
+  TrendingUp,
+  Wind,
+  ShieldCheck,
+  Compass,
+  Sparkles,
+} from "lucide-react";
 
 export default function HomePage() {
   const [resorts, setResorts] = useState<ResortForecast[]>([]);
-  const [selectedResortId, setSelectedResortId] = useState<string | null>(null);
+  const [selectedResort, setSelectedResort] = useState<ResortForecast | null>(null);
+  const [activeOrigin, setActiveOrigin] = useState<UserOrigin>(METRO_ORIGINS[0]);
+  const [quickFilter, setQuickFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [sseConnected, setSseConnected] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
-  const decorateWithDistances = useCallback((items: ResortForecast[]) => {
-    return items.map((r) => {
-      const distance = calculateDistanceMiles(
-        DEFAULT_ORIGIN.latitude,
-        DEFAULT_ORIGIN.longitude,
-        r.latitude,
-        r.longitude
-      );
-      return {
-        ...r,
-        distanceMiles: distance,
-        driveTimeEstimate: estimateDriveTime(distance),
-        snowfall48hInches: r.snowfall48hInches ?? r.predictedSnowfallInches,
-      };
-    });
-  }, []);
+  const decorateWithDistances = useCallback(
+    (items: ResortForecast[], origin: UserOrigin) => {
+      return items.map((r) => {
+        const distance = calculateDistanceMiles(
+          origin.latitude,
+          origin.longitude,
+          r.latitude,
+          r.longitude
+        );
+        return {
+          ...r,
+          distanceMiles: distance,
+          driveTimeEstimate: estimateDriveTime(distance),
+          snowfall48hInches: r.snowfall48hInches ?? r.predictedSnowfallInches,
+        };
+      });
+    },
+    []
+  );
 
   const fetchForecasts = useCallback(async () => {
     try {
@@ -199,30 +56,57 @@ export default function HomePage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ForecastResponse = await res.json();
       if (data.items && data.items.length > 0) {
-        // Merge with our initial list to ensure full Northeast coverage if cluster only has 3 targets
-        const fetchedIds = new Set(data.items.map((i) => i.resortId));
-        const combined = [
-          ...data.items,
-          ...INITIAL_DEMO_RESORTS.filter((d) => !fetchedIds.has(d.resortId)),
-        ];
-        setResorts(decorateWithDistances(combined));
+        // Merge cluster targets with full catalog so all 24 Northeast resorts are populated
+        const fetchedMap = new Map(data.items.map((i) => [i.resortId, i]));
+        const merged = COMPREHENSIVE_NORTHEAST_RESORTS.map((fixture) => {
+          const live = fetchedMap.get(fixture.resortId);
+          if (live) {
+            return {
+              ...fixture,
+              ...live,
+              elevationTiers: fixture.elevationTiers ?? live.elevationTiers,
+              windAnalysis: fixture.windAnalysis ?? live.windAnalysis,
+            };
+          }
+          return fixture;
+        });
+        setResorts(decorateWithDistances(merged, activeOrigin));
       } else {
-        setResorts(decorateWithDistances(INITIAL_DEMO_RESORTS));
+        setResorts(decorateWithDistances(COMPREHENSIVE_NORTHEAST_RESORTS, activeOrigin));
       }
       setLastSyncTime(new Date().toLocaleTimeString());
     } catch {
-      // In local dev without gateway port-forward, gracefully fallback to default telemetry
-      setResorts(decorateWithDistances(INITIAL_DEMO_RESORTS));
+      // In standalone client dev, use full Northeast catalog
+      setResorts(decorateWithDistances(COMPREHENSIVE_NORTHEAST_RESORTS, activeOrigin));
       setLastSyncTime(new Date().toLocaleTimeString());
     } finally {
       setIsLoading(false);
     }
-  }, [decorateWithDistances]);
+  }, [decorateWithDistances, activeOrigin]);
+
+  // Handle origin city change
+  const handleOriginChange = (originId: string) => {
+    const found = METRO_ORIGINS.find((o) => o.id === originId) || METRO_ORIGINS[0];
+    setActiveOrigin(found);
+    setResorts((prev) => decorateWithDistances(prev, found));
+    if (selectedResort) {
+      const updatedDist = calculateDistanceMiles(
+        found.latitude,
+        found.longitude,
+        selectedResort.latitude,
+        selectedResort.longitude
+      );
+      setSelectedResort({
+        ...selectedResort,
+        distanceMiles: updatedDist,
+        driveTimeEstimate: estimateDriveTime(updatedDist),
+      });
+    }
+  };
 
   useEffect(() => {
     fetchForecasts();
 
-    // Setup Live SSE Stream connection
     let eventSource: EventSource | null = null;
     try {
       eventSource = new EventSource("http://localhost:8080/api/v1/events/stream");
@@ -238,11 +122,11 @@ export default function HomePage() {
             const next = prev.map((r) =>
               r.resortId === payload.resortId ? { ...r, ...payload } : r
             );
-            return decorateWithDistances(next);
+            return decorateWithDistances(next, activeOrigin);
           });
           setLastSyncTime(new Date().toLocaleTimeString());
         } catch {
-          // ignore parse errors
+          // ignore
         }
       });
 
@@ -256,15 +140,35 @@ export default function HomePage() {
     return () => {
       eventSource?.close();
     };
-  }, [fetchForecasts, decorateWithDistances]);
+  }, [fetchForecasts, decorateWithDistances, activeOrigin]);
+
+  // Aggregate stats
+  const topResort = useMemo(() => {
+    if (resorts.length === 0) return null;
+    return [...resorts].sort((a, b) => b.powderScore - a.powderScore)[0];
+  }, [resorts]);
+
+  const windHoldCount = useMemo(() => {
+    return resorts.filter((r) => r.windHoldWarning).length;
+  }, [resorts]);
+
+  const gladesRecommendedCount = useMemo(() => {
+    return resorts.filter((r) => r.gladesRecommended).length;
+  }, [resorts]);
+
+  const avgSLR = useMemo(() => {
+    if (resorts.length === 0) return 0;
+    const sum = resorts.reduce((acc, r) => acc + r.snowToLiquidRatio, 0);
+    return (sum / resorts.length).toFixed(1);
+  }, [resorts]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
       {/* Top Navigation Bar */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/30">
               <Snowflake className="w-6 h-6 text-white" />
             </div>
             <div>
@@ -272,117 +176,188 @@ export default function HomePage() {
                 <span className="font-black text-lg tracking-tight text-white">
                   Powder<span className="text-cyan-400">Predictor</span>
                 </span>
-                <span className="text-[10px] bg-cyan-950 text-cyan-400 border border-cyan-800/60 font-mono px-1.5 py-0.5 rounded font-bold uppercase">
-                  k8s-mesh
+                <span className="text-[10px] bg-cyan-950/90 text-cyan-300 border border-cyan-700/60 font-mono px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                  Northeast Operator
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Northeast Meteorological Operator &amp; Trip Planner
+                Atmospheric Lapse Rate &amp; Microclimate Trip Planner
               </p>
             </div>
           </div>
 
-          {/* Right Status / Origin Indicator */}
-          <div className="flex items-center gap-4 text-xs">
-            {/* Origin */}
-            <div className="hidden sm:flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-1.5 text-slate-300">
+          {/* Right Status / Origin Selector */}
+          <div className="flex items-center gap-3 text-xs">
+            {/* Origin Metro Dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-1.5 text-slate-300 shadow-inner">
               <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Origin:</span>
-              <span className="font-semibold text-white">{DEFAULT_ORIGIN.name}</span>
+              <span className="hidden md:inline text-slate-400">Origin:</span>
+              <select
+                value={activeOrigin.id}
+                onChange={(e) => handleOriginChange(e.target.value)}
+                className="bg-transparent text-white font-semibold focus:outline-none cursor-pointer"
+              >
+                {METRO_ORIGINS.map((orig) => (
+                  <option key={orig.id} value={orig.id} className="bg-slate-900 text-white">
+                    {orig.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Live Informer Stream Status */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
-                  sseConnected
-                    ? "bg-emerald-950/60 border-emerald-800/60 text-emerald-400"
-                    : "bg-amber-950/60 border-amber-800/60 text-amber-400"
-                }`}
-              >
-                <Radio className={`w-3 h-3 ${sseConnected ? "animate-pulse" : ""}`} />
-                <span>{sseConnected ? "Live SSE Mesh" : "Polling Mode"}</span>
-              </div>
-
-              <button
-                onClick={fetchForecasts}
-                title="Refresh Forecast Data"
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-              </button>
+            {/* Informer Mesh / SSE Status */}
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold border ${
+                sseConnected
+                  ? "bg-emerald-950/60 border-emerald-800/70 text-emerald-300 shadow-sm shadow-emerald-500/20"
+                  : "bg-slate-900 border-slate-700 text-slate-300"
+              }`}
+            >
+              <Radio className={`w-3 h-3 ${sseConnected ? "animate-pulse text-emerald-400" : "text-slate-400"}`} />
+              <span>{sseConnected ? "K8s SSE Stream Active" : "Cluster Sync Active"}</span>
             </div>
+
+            <button
+              onClick={fetchForecasts}
+              title="Refresh Forecast Data"
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer shadow-sm"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-cyan-400" : ""}`} />
+            </button>
           </div>
         </div>
       </header>
 
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Hero Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-slate-850 p-6 rounded-2xl border border-slate-800 shadow-xl">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-cyan-400" />
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">
-                Northeast Snow Condition &amp; Microclimate Matrix
-              </h1>
+        {/* Hero Section & Live Meteorological Stat Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Main Hero Banner */}
+          <div className="lg:col-span-2 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-950/90 p-6 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <Zap className="w-5 h-5 text-cyan-400" />
+                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  Northeast Powder Intelligence
+                </h1>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                Automated downscaling over 24 Northeast peaks across VT, NH, ME, NY, and MA. Calculating real-time Moist Adiabatic Lapse Rates, Dendritic Growth Zone snow ratios, and ridgeline wind slab loading.
+              </p>
             </div>
-            <p className="text-sm text-slate-400 max-w-3xl">
-              Real-time atmospheric downscaling across VT, NH, ME, and NY. Integrated with dynamic lapse rate modeling, Dendritic Growth Zone SLR calculations, ridgeline wind scour alerts, and SNOTEL snow depth sensors.
-            </p>
+
+            {topResort && (
+              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-cyan-400 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-800/60">
+                    Top Pick Today
+                  </span>
+                  <span className="font-bold text-white text-sm">{topResort.name}</span>
+                </div>
+                <div className="flex items-center gap-3 font-mono">
+                  <span className="text-cyan-400 font-black">{topResort.powderScore} Score</span>
+                  <span className="text-purple-400 font-bold">{topResort.snowfall48hInches}&quot; Fresh</span>
+                </div>
+              </div>
+            )}
           </div>
 
-          {lastSyncTime && (
-            <div className="text-right text-xs text-slate-500 font-mono shrink-0">
-              Last synced: <span className="text-slate-300">{lastSyncTime}</span>
+          {/* Stat 1: Protected Glades Primed */}
+          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-md flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Leeward Stashes
+              </span>
+              <Compass className="w-4 h-4 text-emerald-400" />
             </div>
-          )}
+            <div className="my-2">
+              <span className="text-3xl font-black font-mono text-emerald-400">
+                {gladesRecommendedCount}
+              </span>
+              <span className="text-xs text-slate-400 block mt-1">
+                Mountains with protected powder glades primed
+              </span>
+            </div>
+            <span className="text-[10px] text-emerald-500 font-semibold font-mono">
+              Aspect transport active
+            </span>
+          </div>
+
+          {/* Stat 2: Average Regional SLR & Wind Holds */}
+          <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-md flex flex-col justify-between">
+            <div className="flex justify-between items-start">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Regional SLR &amp; Holds
+              </span>
+              <Wind className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="my-2">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-black font-mono text-cyan-400">
+                  {avgSLR}:1
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Avg Snow Density</span>
+              </div>
+              <span className="text-xs text-amber-400 block mt-1">
+                {windHoldCount} summit lifts at risk of wind hold
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">
+              {resorts.length} mountains monitored
+            </span>
+          </div>
         </div>
 
-        {/* Story 5.1: Geospatial Map Canvas */}
-        <section className="space-y-2">
+        {/* Story 5.3: Geospatial Map Canvas */}
+        <section className="space-y-3">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <span>Interactive Mountain Map</span>
-              <span className="text-[10px] text-cyan-400 font-normal font-mono">
-                [CARTO DarkBasemap • Dynamic 48h Markers]
-              </span>
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <span className="text-cyan-400">●</span>
+              <span>Northeast Mountain Topography</span>
             </h2>
-            <span className="text-xs text-slate-400">
-              Click pins to reveal microclimate details
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Click any pin or table row to inspect elevation tiers &amp; wind models
             </span>
           </div>
           <ResortMap
             resorts={resorts}
-            selectedResortId={selectedResortId}
-            onSelectResort={(r) => setSelectedResortId(r.resortId)}
+            selectedResortId={selectedResort?.resortId}
+            onSelectResort={(r) => setSelectedResort(r)}
           />
         </section>
 
-        {/* Story 5.2: Resort Comparison & Ranking Matrix */}
-        <section className="space-y-2 pt-2">
+        {/* Story 5.4 & 5.5: Resort Comparison & Ranking Matrix */}
+        <section className="space-y-3 pt-2">
           <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <span>Resort Comparison &amp; Ranking Matrix</span>
-              <span className="text-[10px] text-cyan-400 font-normal font-mono">
-                [TanStack Table • Multi-Column Sort]
-              </span>
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <span className="text-purple-400">●</span>
+              <span>Resort Comparison &amp; Forecast Ranking</span>
             </h2>
-            <span className="text-xs text-slate-400">
-              Sorted by default Powder Score (0–100)
-            </span>
+            {lastSyncTime && (
+              <span className="text-xs text-slate-500 font-mono">
+                Telemetry synced: {lastSyncTime}
+              </span>
+            )}
           </div>
           <ResortMatrix
             resorts={resorts}
-            selectedResortId={selectedResortId}
-            onSelectResort={(r) => setSelectedResortId(r.resortId)}
+            selectedResortId={selectedResort?.resortId}
+            onSelectResort={(r) => setSelectedResort(r)}
+            activeQuickFilter={quickFilter}
+            onQuickFilterChange={setQuickFilter}
           />
         </section>
       </main>
 
+      {/* Slide-out Resort Detail Drawer */}
+      <ResortDetailDrawer
+        resort={selectedResort}
+        onClose={() => setSelectedResort(null)}
+      />
+
       {/* Footer */}
       <footer className="border-t border-slate-900 bg-slate-950 py-6 text-center text-xs text-slate-500">
-        <p>PowderPredictor • Kubernetes-Native Meteorological Operator • Northeast Freeride Intelligence</p>
+        <p>PowderPredictor • Kubernetes-Native Meteorological Operator &amp; Northeast Freeride Intelligence</p>
       </footer>
     </div>
   );

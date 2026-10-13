@@ -1,8 +1,28 @@
+export interface ElevationTiers {
+  baseElevationFt: number;
+  midElevationFt: number;
+  summitElevationFt: number;
+  baseTempF: number;
+  midTempF: number;
+  summitTempF: number;
+  lapseRateFPer1000Ft: number;
+}
+
+export interface WindAnalysis {
+  speedMph: number;
+  gustMph: number;
+  directionDeg: number;
+  cardinal: string;
+  windHoldRiskIndex: number; // 0 - 100
+  scouredAspects: string[];
+  loadedAspects: string[];
+}
+
 export interface ResortForecast {
   resortId: string;
   name: string;
-  region: string; // 'VT' | 'NH' | 'ME' | 'NY'
-  passType: string; // 'Ikon' | 'Epic' | 'Indy' | 'Independent'
+  region: "VT" | "NH" | "ME" | "NY" | "MA";
+  passType: "Ikon" | "Epic" | "Indy" | "Independent";
   latitude: number;
   longitude: number;
   summitFt: number;
@@ -11,7 +31,9 @@ export interface ResortForecast {
   skiableAcres: number;
   powderScore: number; // 0 - 100
   confidenceInterval: number;
-  predictedSnowfallInches: number; // modeled 48h / active window total
+  predictedSnowfallInches: number; // Modeled 48h storm total
+  snowfall24hInches: number;
+  snowfall48hInches: number;
   snowToLiquidRatio: number;
   freezingLevelElevationFt: number;
   windowStart: string;
@@ -19,12 +41,11 @@ export interface ResortForecast {
   gladesRecommended: boolean;
   windHoldWarning: boolean;
   crustRisk: boolean;
+  baseDepthInches: number;
   distanceMiles?: number;
   driveTimeEstimate?: string;
-  // Computed client-side or from SNOTEL / modeled multi-window
-  snowfall24hInches?: number;
-  snowfall48hInches?: number;
-  baseDepthInches?: number;
+  elevationTiers?: ElevationTiers;
+  windAnalysis?: WindAnalysis;
 }
 
 export interface ForecastResponse {
@@ -33,6 +54,7 @@ export interface ForecastResponse {
 }
 
 export interface UserOrigin {
+  id: string;
   name: string;
   latitude: number;
   longitude: number;
