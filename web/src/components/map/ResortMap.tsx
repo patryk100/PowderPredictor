@@ -3,14 +3,41 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Map, NavigationControl, Marker } from "maplibre-gl";
 import { ResortForecast } from "@/types/resort";
-import { getSnowfallColor, getPowderScoreBadge } from "@/lib/geo";
-import { Mountain, Wind, AlertTriangle, Snowflake, Compass, Layers, Maximize2 } from "lucide-react";
+import { getSnowfallColor } from "@/lib/geo";
+import { Mountain, Snowflake, Maximize2 } from "lucide-react";
 
 interface ResortMapProps {
   resorts: ResortForecast[];
   selectedResortId?: string | null;
   onSelectResort?: (resort: ResortForecast) => void;
 }
+
+// Built-in standalone style using Carto Dark raster tiles (no external JSON/font dependencies, 100% reliable)
+const DARK_MATTER_STYLE: any = {
+  version: 8,
+  sources: {
+    "carto-dark": {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
+        "https://d.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png",
+      ],
+      tileSize: 256,
+      attribution: "&copy; OpenStreetMap &copy; CARTO",
+    },
+  },
+  layers: [
+    {
+      id: "carto-dark-layer",
+      type: "raster",
+      source: "carto-dark",
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
 
 export const ResortMap: React.FC<ResortMapProps> = ({
   resorts,
@@ -28,17 +55,16 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Use free CARTO Dark matter basemap with open fallback
     const mapInstance = new Map({
       container: mapContainer.current,
-      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      style: DARK_MATTER_STYLE,
       center: [-72.5, 43.8],
       zoom: 6.8,
       minZoom: 5.2,
       maxZoom: 14,
       maxBounds: [
-        [-76.8, 39.8], // Southwest bounds (PA/NY/NJ border)
-        [-66.2, 47.6], // Northeast bounds (Northern Maine / Canada)
+        [-76.8, 39.8], // Southwest bounds
+        [-66.2, 47.6], // Northeast bounds
       ],
       attributionControl: false,
     });
@@ -47,13 +73,16 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
     mapInstance.on("load", () => {
       setMapLoaded(true);
-      // Ensure canvas fills container without glitches
       mapInstance.resize();
     });
 
+    // Also trigger resize right after mount
+    setTimeout(() => {
+      mapInstance.resize();
+    }, 200);
+
     map.current = mapInstance;
 
-    // Window resize observer to avoid grey tile glitches in flex layouts
     const resizeObserver = new ResizeObserver(() => {
       mapInstance.resize();
     });
@@ -85,7 +114,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
   // Render Modern SVG Markers
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current) return;
 
     // Clear old markers
     Object.values(markersRef.current).forEach((m) => m.remove());
@@ -104,9 +133,9 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
       // Pulsing glow ring when selected or when heavy powder (>12")
       const haloClass = isSelected
-        ? "absolute -inset-1 rounded-full bg-cyan-400/40 animate-ping"
+        ? "absolute -inset-1 rounded-full bg-cyan-400/50 animate-ping"
         : snowfall >= 12
-        ? "absolute -inset-1 rounded-full bg-purple-500/30 animate-pulse"
+        ? "absolute -inset-1 rounded-full bg-purple-500/40 animate-pulse"
         : "hidden";
 
       // SVG Badge Structure
@@ -115,7 +144,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
         <div class="relative w-full h-full rounded-2xl flex flex-col items-center justify-center shadow-2xl transition-all duration-200 border-2 ${
           isSelected
             ? "border-cyan-300 ring-4 ring-cyan-500/50 scale-110 shadow-cyan-500/50"
-            : "border-white/80 hover:scale-125 hover:border-cyan-300"
+            : "border-white/90 hover:scale-125 hover:border-cyan-300"
         }" style="background: radial-gradient(circle at 30% 30%, ${colorInfo.hex}, #090d16 140%);">
           <div class="flex items-center gap-0.5 leading-none">
             <span class="text-xs font-black text-white font-mono tracking-tight drop-shadow">${Math.round(snowfall)}"</span>
@@ -200,7 +229,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
       {/* Floating Hover Elevation Range Tooltip */}
       {hoveredResort && (
-        <div className="absolute bottom-4 left-4 z-20 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/60 rounded-xl px-4 py-3 text-xs shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-2">
+        <div className="absolute bottom-4 left-4 z-20 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/60 rounded-xl px-4 py-3 text-xs shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
           <div className="flex items-center gap-2 mb-1.5">
             <Mountain className="w-4 h-4 text-cyan-400" />
             <span className="font-bold text-white text-sm">{hoveredResort.name}</span>
