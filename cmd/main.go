@@ -40,6 +40,12 @@ import (
 	weatherv1alpha1 "github.com/powderpredictor/operator/api/v1alpha1"
 	"github.com/powderpredictor/operator/internal/controller"
 	webhookv1alpha1 "github.com/powderpredictor/operator/internal/webhook/v1alpha1"
+	"github.com/powderpredictor/operator/pkg/ingestion"
+	"github.com/powderpredictor/operator/pkg/testutil"
+	"github.com/powderpredictor/operator/pkg/weather"
+	"github.com/powderpredictor/operator/pkg/weather/nws"
+	"github.com/powderpredictor/operator/pkg/weather/openmeteo"
+	"github.com/powderpredictor/operator/pkg/weather/transport"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -64,6 +70,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var useMockWeatherServer bool
 	var tlsOpts []func(*tls.Config)
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
 		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
@@ -71,6 +78,8 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&useMockWeatherServer, "use-mock-weather-server", false,
+		"Enable embedded offline mock weather server simulating realistic winter storms.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", true,
 		"If set, the metrics endpoint is served securely via HTTPS. Use --metrics-secure=false to use HTTP instead.")
 	flag.StringVar(&webhookCertPath, "webhook-cert-path", "", "The directory that contains the webhook certificate.")
@@ -203,9 +212,31 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize IngestionPipeline with either live providers or local mock server
+	var noaaClient weather.WeatherProvider
+	var openMeteoClient weather.WeatherProvider
+
+	if useMockWeatherServer {
+		setupLog.Info("Starting offline mock weather server for local development")
+		mockServer := testutil.NewMockWeatherServer(testutil.ScenarioNoreaster)
+		noaaClient = nws.NewClient(nws.WithBaseURL(mockServer.URL()))
+		openMeteoClient = openmeteo.NewClient(openmeteo.WithBaseURL(mockServer.URL() + "/v1/forecast"))
+	} else {
+		resilientHTTP := transport.NewClientBuilder().
+			WithRateLimit(5.0, 5).
+			WithMaxRetries(3).
+			Build()
+		noaaClient = nws.NewClient(nws.WithHTTPClient(resilientHTTP))
+		openMeteoClient = openmeteo.NewClient(openmeteo.WithHTTPClient(resilientHTTP))
+	}
+
+	pipeline := ingestion.NewIngestionPipeline(noaaClient, openMeteoClient, 8)
+
 	if err := (&controller.ResortTargetReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("powder-operator"),
+		Pipeline: pipeline,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ResortTarget")
 		os.Exit(1)

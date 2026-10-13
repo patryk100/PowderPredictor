@@ -122,6 +122,14 @@ type ResortTargetStatus struct {
 	// +optional
 	IngestionBackoffCount int `json:"ingestionBackoffCount,omitempty"`
 
+	// NOAAHealthy indicates the health of the most recent NOAA NWS API fetch
+	// +optional
+	NOAAHealthy *bool `json:"noaaHealthy,omitempty"`
+
+	// OpenMeteoHealthy indicates the health of the most recent Open-Meteo API fetch
+	// +optional
+	OpenMeteoHealthy *bool `json:"openMeteoHealthy,omitempty"`
+
 	// Conditions represent the current service conditions of the target reconciliation
 	// +listType=map
 	// +listMapKey=type

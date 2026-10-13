@@ -18,22 +18,28 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	weatherv1alpha1 "github.com/powderpredictor/operator/api/v1alpha1"
+	"github.com/powderpredictor/operator/pkg/ingestion"
+	"github.com/powderpredictor/operator/pkg/weather"
 )
 
 // ResortTargetReconciler reconciles a ResortTarget object
 type ResortTargetReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
+	Pipeline *ingestion.IngestionPipeline
 }
 
 const resortTargetFinalizer = "weather.powderpredictor.io/finalizer"
@@ -86,26 +92,58 @@ func (r *ResortTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		}
 	}
 
-	// Check if this is the initial reconciliation or if sync threshold has elapsed
-	if len(target.Status.Conditions) == 0 || target.Status.LastSyncTime == nil {
-		now := metav1.Now()
-		target.Status.LastSyncTime = &now
-		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, "Target initialized and ready for meteorological ingestion")
-		if err := updater.UpdateResortTargetStatus(ctx, target); err != nil {
-			log.Error(err, "Failed to update initial ResortTarget status")
-			return ctrl.Result{}, err
-		}
-		log.Info("Initialized ResortTarget status conditions", "resort", target.Name)
-		return ctrl.Result{RequeueAfter: syncDuration}, nil
-	}
+	// Check if this is initial sync or if sync interval has elapsed
+	shouldIngest := len(target.Status.Conditions) == 0 || target.Status.LastSyncTime == nil || time.Since(target.Status.LastSyncTime.Time) >= syncDuration
 
-	// Check elapsed time against sync window
-	elapsed := time.Since(target.Status.LastSyncTime.Time)
-	if elapsed >= syncDuration {
-		log.Info("Sync interval reached; queuing meteorological refresh", "resort", target.Name, "elapsed", elapsed)
+	if shouldIngest && r.Pipeline != nil {
+		coords := weather.Coordinates{
+			Latitude:  target.Spec.Latitude,
+			Longitude: target.Spec.Longitude,
+		}
+		elev := weather.ElevationBounds{
+			BaseElevationFt:   target.Spec.BaseElevationFt,
+			SummitElevationFt: target.Spec.SummitElevationFt,
+		}
+
+		log.Info("Executing meteorological ingestion pipeline", "resort", target.Name)
+		ingestResult, err := r.Pipeline.IngestTarget(ctx, target.Name, coords, elev)
+
 		now := metav1.Now()
 		target.Status.LastSyncTime = &now
-		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, "Meteorological conditions up to date")
+
+		if ingestResult != nil {
+			target.Status.NOAAHealthy = &ingestResult.NOAAHealthy
+			target.Status.OpenMeteoHealthy = &ingestResult.OpenMeteoHealthy
+		}
+
+		if err != nil {
+			log.Error(err, "Ingestion pipeline encountered failures", "resort", target.Name)
+			SetResortTargetDegraded(target, weatherv1alpha1.ReasonSyncFailed, fmt.Sprintf("All meteorological providers failed: %v", err))
+			if r.Recorder != nil {
+				r.Recorder.Event(target, "Warning", "IngestionFailed", fmt.Sprintf("Meteorological ingestion failed: %v", err))
+			}
+			target.Status.IngestionBackoffCount++
+			if updateErr := updater.UpdateResortTargetStatus(ctx, target); updateErr != nil {
+				return ctrl.Result{}, updateErr
+			}
+			// Retry sooner on failure (e.g. 5 minutes)
+			return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
+		}
+
+		// At least one provider succeeded
+		target.Status.IngestionBackoffCount = 0
+		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, fmt.Sprintf("Forecast updated (Summit snow: %.1fin)", ingestResult.Snapshot.TotalSummitSnowfallInches))
+		if r.Recorder != nil {
+			r.Recorder.Event(target, "Normal", "IngestionSuccess", fmt.Sprintf("Ingested forecast from providers (Summit snow: %.1fin)", ingestResult.Snapshot.TotalSummitSnowfallInches))
+		}
+		if updateErr := updater.UpdateResortTargetStatus(ctx, target); updateErr != nil {
+			return ctrl.Result{}, updateErr
+		}
+		return ctrl.Result{RequeueAfter: syncDuration}, nil
+	} else if len(target.Status.Conditions) == 0 || target.Status.LastSyncTime == nil {
+		now := metav1.Now()
+		target.Status.LastSyncTime = &now
+		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, "Target initialized")
 		if err := updater.UpdateResortTargetStatus(ctx, target); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -113,7 +151,7 @@ func (r *ResortTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Calculate remaining time until next sync
-	remaining := syncDuration - elapsed
+	remaining := syncDuration - time.Since(target.Status.LastSyncTime.Time)
 	return ctrl.Result{RequeueAfter: remaining}, nil
 }
 

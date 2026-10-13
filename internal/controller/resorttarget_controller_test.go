@@ -26,8 +26,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/record"
 
 	weatherv1alpha1 "github.com/powderpredictor/operator/api/v1alpha1"
+	"github.com/powderpredictor/operator/pkg/ingestion"
+	"github.com/powderpredictor/operator/pkg/testutil"
+	"github.com/powderpredictor/operator/pkg/weather/nws"
+	"github.com/powderpredictor/operator/pkg/weather/openmeteo"
 )
 
 var _ = Describe("ResortTarget Controller", func() {
@@ -74,10 +79,18 @@ var _ = Describe("ResortTarget Controller", func() {
 		})
 
 		It("should successfully reconcile the resource and set status conditions without mutating generation", func() {
-			By("Reconciling the created resource")
+			mockServer := testutil.NewMockWeatherServer(testutil.ScenarioNoreaster)
+			defer mockServer.Close()
+			noaaClient := nws.NewClient(nws.WithBaseURL(mockServer.URL()))
+			openMeteoClient := openmeteo.NewClient(openmeteo.WithBaseURL(mockServer.URL() + "/v1/forecast"))
+			pipeline := ingestion.NewIngestionPipeline(noaaClient, openMeteoClient, 2)
+			fakeRecorder := record.NewFakeRecorder(10)
+
 			controllerReconciler := &ResortTargetReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				Recorder: fakeRecorder,
+				Pipeline: pipeline,
 			}
 
 			// Capture generation prior to status reconcile

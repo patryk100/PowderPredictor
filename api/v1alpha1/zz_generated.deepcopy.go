@@ -117,6 +117,16 @@ func (in *ResortTargetStatus) DeepCopyInto(out *ResortTargetStatus) {
 		*out = new(v1.LocalObjectReference)
 		**out = **in
 	}
+	if in.NOAAHealthy != nil {
+		in, out := &in.NOAAHealthy, &out.NOAAHealthy
+		*out = new(bool)
+		**out = **in
+	}
+	if in.OpenMeteoHealthy != nil {
+		in, out := &in.OpenMeteoHealthy, &out.OpenMeteoHealthy
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make([]metav1.Condition, len(*in))

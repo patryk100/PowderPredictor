@@ -206,11 +206,19 @@ spec:
                   atmospheric ingestion
                 format: date-time
                 type: string
+              noaaHealthy:
+                description: NOAAHealthy indicates the health of the most recent NOAA
+                  NWS API fetch
+                type: boolean
               observedGeneration:
                 description: ObservedGeneration represents the .metadata.generation
                   that was reconciled
                 format: int64
                 type: integer
+              openMeteoHealthy:
+                description: OpenMeteoHealthy indicates the health of the most recent
+                  Open-Meteo API fetch
+                type: boolean
             type: object
         required:
         - spec

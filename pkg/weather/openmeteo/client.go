@@ -212,7 +212,10 @@ func (c *Client) FetchForecast(ctx context.Context, coords weather.Coordinates, 
 		}
 
 		// Attach isobaric sounding data if available
-		if len(baseResp.Hourly.Temperature850hPa) > i {
+		if len(baseResp.Hourly.Temperature850hPa) > i &&
+			len(baseResp.Hourly.RelativeHumidity850hPa) > i &&
+			len(baseResp.Hourly.WindSpeed850hPa) > i &&
+			len(baseResp.Hourly.GeopotentialHeight850hPa) > i {
 			hSnapshot.Isobaric850hPa = &weather.IsobaricLevelData{
 				PressureHPa:         850,
 				TemperatureC:        baseResp.Hourly.Temperature850hPa[i],
@@ -221,7 +224,10 @@ func (c *Client) FetchForecast(ctx context.Context, coords weather.Coordinates, 
 				GeopotentialHeightM: baseResp.Hourly.GeopotentialHeight850hPa[i],
 			}
 		}
-		if len(baseResp.Hourly.Temperature700hPa) > i {
+		if len(baseResp.Hourly.Temperature700hPa) > i &&
+			len(baseResp.Hourly.RelativeHumidity700hPa) > i &&
+			len(baseResp.Hourly.WindSpeed700hPa) > i &&
+			len(baseResp.Hourly.GeopotentialHeight700hPa) > i {
 			hSnapshot.Isobaric700hPa = &weather.IsobaricLevelData{
 				PressureHPa:         700,
 				TemperatureC:        baseResp.Hourly.Temperature700hPa[i],
