@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { ResortForecast } from "@/types/resort";
 import { getPowderScoreBadge, getSnowfallColor } from "@/lib/geo";
+import { ElevationProfileChart } from "@/components/resorts/ElevationProfileChart";
 import {
   X,
   Mountain,
@@ -12,30 +13,33 @@ import {
   Thermometer,
   Clock,
   Sparkles,
-  ShieldCheck,
-  ArrowRight,
   TrendingUp,
 } from "lucide-react";
 
 interface ResortDetailDrawerProps {
   resort: ResortForecast | null;
   onClose: () => void;
+  hourOffset?: number;
 }
 
 export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
   resort,
   onClose,
+  hourOffset = 0,
 }) => {
   if (!resort) return null;
 
-  const snowfall = resort.snowfall48hInches ?? resort.predictedSnowfallInches;
+  // Find step in hourly series corresponding to scrubber offset
+  const currentStep = resort.hourlySeries?.find((s) => s.hourOffset === hourOffset) ?? resort.hourlySeries?.[0];
+
+  const snowfall = currentStep?.cumulativeSnowInches ?? resort.snowfall48hInches ?? resort.predictedSnowfallInches;
   const colorInfo = getSnowfallColor(snowfall);
   const scoreBadge = getPowderScoreBadge(resort.powderScore);
   const tiers = resort.elevationTiers;
   const wind = resort.windAnalysis;
 
   return (
-    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[440px] bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-y-0 right-0 z-50 w-full sm:w-[480px] bg-slate-950/95 backdrop-blur-2xl border-l border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="p-5 border-b border-slate-800/80 flex justify-between items-start bg-slate-900/60">
         <div>
@@ -82,10 +86,10 @@ export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
             </div>
           </div>
 
-          {/* 48h Snow Card */}
+          {/* Cumulative Snow Card */}
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
             <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider block">
-              48h Storm Total
+              Modeled Accumulation (+{hourOffset}h)
             </span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-4xl font-black font-mono text-purple-400">
@@ -96,10 +100,13 @@ export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
               </span>
             </div>
             <div className="mt-2 text-[10px] text-slate-400">
-              Next 24h: <span className="font-bold text-slate-200">{resort.snowfall24hInches}&quot;</span>
+              Storm Peak: <span className="font-bold text-slate-200">{resort.predictedSnowfallInches}&quot;</span>
             </div>
           </div>
         </div>
+
+        {/* Story 5.3: Elevation Cross Section Profile & DGZ */}
+        <ElevationProfileChart resort={resort} currentStep={currentStep} />
 
         {/* Travel & SNOTEL Live Sensors */}
         <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-2.5">
@@ -129,54 +136,10 @@ export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
               <span>Freezing Level Altitude:</span>
             </span>
             <span className="font-mono font-bold text-slate-100">
-              {resort.freezingLevelElevationFt.toLocaleString()}&apos; MSL
+              {(currentStep?.freezingLevelElevationFt ?? resort.freezingLevelElevationFt).toLocaleString()}&apos; MSL
             </span>
           </div>
         </div>
-
-        {/* Vertical Lapse Rate Downscaling Tiers */}
-        {tiers && (
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Elevation Bands &amp; Lapse Rates</span>
-              </span>
-              <span className="text-[10px] font-mono text-cyan-400 font-semibold">
-                {tiers.lapseRateFPer1000Ft}°F / 1,000&apos;
-              </span>
-            </div>
-
-            <div className="space-y-2 pt-1 text-xs">
-              {/* Summit */}
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <div>
-                  <span className="font-semibold text-slate-200 block">Summit Band</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{tiers.summitElevationFt.toLocaleString()}&apos;</span>
-                </div>
-                <span className="font-mono font-bold text-purple-400 text-sm">{tiers.summitTempF}°F</span>
-              </div>
-
-              {/* Mid Mountain */}
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <div>
-                  <span className="font-semibold text-slate-200 block">Mid-Mountain Band</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{tiers.midElevationFt.toLocaleString()}&apos;</span>
-                </div>
-                <span className="font-mono font-bold text-sky-400 text-sm">{tiers.midTempF}°F</span>
-              </div>
-
-              {/* Base */}
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-950/80 border border-slate-800">
-                <div>
-                  <span className="font-semibold text-slate-200 block">Base Valley</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{tiers.baseElevationFt.toLocaleString()}&apos;</span>
-                </div>
-                <span className="font-mono font-bold text-emerald-400 text-sm">{tiers.baseTempF}°F</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Ridgeline Wind Scour & Wind Slab Modeling */}
         {wind && (
@@ -195,7 +158,7 @@ export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
               <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
                 <span className="text-[10px] text-slate-400 block">Vector &amp; Speed</span>
                 <span className="font-mono font-bold text-slate-100 mt-0.5 block">
-                  {wind.cardinal} @ {wind.speedMph} mph (Gust {wind.gustMph})
+                  {wind.cardinal} @ {currentStep?.windSpeedMph ?? wind.speedMph} mph (Gust {currentStep?.windGustMph ?? wind.gustMph})
                 </span>
               </div>
               <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
@@ -208,7 +171,7 @@ export const ResortDetailDrawer: React.FC<ResortDetailDrawerProps> = ({
           </div>
         )}
 
-        {/* Weather Alerts & Surface Recommendations */}
+        {/* Surface Recommendations */}
         <div className="space-y-2">
           <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
             Surface Quality &amp; Advisory Tags

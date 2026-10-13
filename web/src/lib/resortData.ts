@@ -1,4 +1,4 @@
-import { ResortForecast, UserOrigin } from "@/types/resort";
+import { ResortForecast, UserOrigin, HourlyForecastStep } from "@/types/resort";
 
 export const METRO_ORIGINS: UserOrigin[] = [
   { id: "boston", name: "Boston / Arlington, MA", latitude: 42.4154, longitude: -71.1565 },
@@ -8,6 +8,83 @@ export const METRO_ORIGINS: UserOrigin[] = [
   { id: "portland", name: "Portland, ME", latitude: 43.6591, longitude: -70.2568 },
   { id: "hartford", name: "Hartford, CT", latitude: 41.7658, longitude: -72.6734 },
 ];
+
+/**
+ * Generate 72-hour realistic meteorological time-series for a resort
+ */
+export function generate72hTimeSeries(
+  resort: Partial<ResortForecast>,
+  totalSnow: number,
+  baseFreezing: number
+): HourlyForecastStep[] {
+  const steps: HourlyForecastStep[] = [];
+  const now = new Date();
+  let cumulative = 0;
+
+  for (let h = 0; h <= 72; h += 3) {
+    const t = new Date(now.getTime() + h * 3600 * 1000);
+    // Dynamic freezing line progression: dips during storm peak (h: 12 - 36), rises post-storm
+    let freezeFt = baseFreezing;
+    if (h >= 12 && h <= 36) {
+      freezeFt = Math.max(1200, baseFreezing - 1500); // Cold pool / adiabatic drop
+    } else if (h > 48) {
+      freezeFt = baseFreezing + 600; // Warm sector / clearing
+    }
+
+    // Summit Temp
+    const summitFt = resort.summitFt ?? 3800;
+    const baseFt = resort.baseFt ?? 1400;
+    const lapseRate = 3.5;
+    const baseTempF = Math.round(32 + ((freezeFt - baseFt) / 1000) * lapseRate);
+    const summitTempF = Math.round(baseTempF - ((summitFt - baseFt) / 1000) * lapseRate);
+    const summitTempC = Math.round(((summitTempF - 32) * 5) / 9);
+
+    // DGZ check: -12°C to -18°C (approx 10°F to -0.4°F)
+    const inDGZ = summitTempC >= -18 && summitTempC <= -12;
+
+    // Precipitation phase determination
+    let phase: "rain" | "mixed" | "dense_snow" | "blower_powder" | "clear" = "clear";
+    let incSnow = 0;
+
+    if (h >= 9 && h <= 45 && totalSnow > 0) {
+      // Active storm window
+      if (summitTempF > 34) {
+        phase = "rain";
+      } else if (summitTempF >= 31 && baseTempF > 34) {
+        phase = "mixed";
+        incSnow = Math.round((totalSnow / 18) * 10) / 10;
+      } else if (inDGZ) {
+        phase = "blower_powder";
+        incSnow = Math.round((totalSnow / 8) * 10) / 10;
+      } else {
+        phase = "dense_snow";
+        incSnow = Math.round((totalSnow / 10) * 10) / 10;
+      }
+    }
+    cumulative = Math.round((cumulative + incSnow) * 10) / 10;
+
+    const windSpeed = h >= 15 && h <= 33 ? 28 + (h % 10) : 12 + (h % 6);
+    const windGust = windSpeed + 18;
+
+    steps.push({
+      hourOffset: h,
+      timestamp: t.toISOString(),
+      freezingLevelElevationFt: freezeFt,
+      summitTempF,
+      midTempF: Math.round((baseTempF + summitTempF) / 2),
+      baseTempF,
+      summitTempC,
+      phase,
+      snowfallInches: incSnow,
+      cumulativeSnowInches: cumulative,
+      windSpeedMph: windSpeed,
+      windGustMph: windGust,
+      inDGZ,
+    });
+  }
+
+  return steps;
+}
 
 export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
   // --- VERMONT (Green Mountains) ---
@@ -27,10 +104,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 18.0,
     snowfall24hInches: 12.0,
     snowfall48hInches: 18.0,
+    snowfall72hInches: 22.0,
     snowToLiquidRatio: 18.5,
     freezingLevelElevationFt: 1200,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
@@ -53,6 +131,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["NW", "W"],
       loadedAspects: ["SE", "E"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 3968, baseFt: 1815 }, 18.0, 1400),
   },
   {
     resortId: "stowe",
@@ -70,10 +149,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 14.0,
     snowfall24hInches: 8.5,
     snowfall48hInches: 14.0,
+    snowfall72hInches: 17.5,
     snowToLiquidRatio: 16.0,
     freezingLevelElevationFt: 1350,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: true,
     crustRisk: false,
@@ -96,6 +176,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["NW", "W"],
       loadedAspects: ["SE", "E"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4395, baseFt: 1280 }, 14.0, 1600),
   },
   {
     resortId: "sugarbush",
@@ -113,32 +194,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 12.0,
     snowfall24hInches: 7.0,
     snowfall48hInches: 12.0,
+    snowfall72hInches: 15.0,
     snowToLiquidRatio: 15.0,
     freezingLevelElevationFt: 1400,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 38,
-    elevationTiers: {
-      baseElevationFt: 1483,
-      midElevationFt: 2783,
-      summitElevationFt: 4083,
-      baseTempF: 27,
-      midTempF: 22,
-      summitTempF: 18,
-      lapseRateFPer1000Ft: 3.5,
-    },
-    windAnalysis: {
-      speedMph: 20,
-      gustMph: 32,
-      directionDeg: 290,
-      cardinal: "WNW",
-      windHoldRiskIndex: 35,
-      scouredAspects: ["W"],
-      loadedAspects: ["E", "SE"],
-    },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4083, baseFt: 1483 }, 12.0, 1700),
   },
   {
     resortId: "mad-river-glen",
@@ -156,32 +221,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 13.5,
     snowfall24hInches: 8.0,
     snowfall48hInches: 13.5,
+    snowfall72hInches: 16.0,
     snowToLiquidRatio: 17.0,
     freezingLevelElevationFt: 1300,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 36,
-    elevationTiers: {
-      baseElevationFt: 1600,
-      midElevationFt: 2618,
-      summitElevationFt: 3637,
-      baseTempF: 26,
-      midTempF: 22,
-      summitTempF: 19,
-      lapseRateFPer1000Ft: 3.4,
-    },
-    windAnalysis: {
-      speedMph: 15,
-      gustMph: 24,
-      directionDeg: 315,
-      cardinal: "NW",
-      windHoldRiskIndex: 15,
-      scouredAspects: ["NW"],
-      loadedAspects: ["SE"],
-    },
+    hourlySeries: generate72hTimeSeries({ summitFt: 3637, baseFt: 1600 }, 13.5, 1500),
   },
   {
     resortId: "smugglers-notch",
@@ -199,32 +248,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 14.5,
     snowfall24hInches: 9.0,
     snowfall48hInches: 14.5,
+    snowfall72hInches: 18.0,
     snowToLiquidRatio: 16.5,
     freezingLevelElevationFt: 1250,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 40,
-    elevationTiers: {
-      baseElevationFt: 1030,
-      midElevationFt: 2335,
-      summitElevationFt: 3640,
-      baseTempF: 28,
-      midTempF: 23,
-      summitTempF: 19,
-      lapseRateFPer1000Ft: 3.4,
-    },
-    windAnalysis: {
-      speedMph: 16,
-      gustMph: 26,
-      directionDeg: 300,
-      cardinal: "WNW",
-      windHoldRiskIndex: 20,
-      scouredAspects: ["W"],
-      loadedAspects: ["E"],
-    },
+    hourlySeries: generate72hTimeSeries({ summitFt: 3640, baseFt: 1030 }, 14.5, 1450),
   },
   {
     resortId: "bolton-valley",
@@ -242,14 +275,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 12.0,
     snowfall24hInches: 7.5,
     snowfall48hInches: 12.0,
+    snowfall72hInches: 15.0,
     snowToLiquidRatio: 15.5,
     freezingLevelElevationFt: 1350,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 36,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3150, baseFt: 1450 }, 12.0, 1600),
   },
   {
     resortId: "killington",
@@ -267,10 +302,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 8.5,
     snowfall24hInches: 5.0,
     snowfall48hInches: 8.5,
+    snowfall72hInches: 11.0,
     snowToLiquidRatio: 13.0,
     freezingLevelElevationFt: 1800,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
@@ -293,6 +329,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["W"],
       loadedAspects: ["E"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4241, baseFt: 1165 }, 8.5, 2000),
   },
   {
     resortId: "okemo",
@@ -310,14 +347,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 6.0,
     snowfall24hInches: 3.5,
     snowfall48hInches: 6.0,
+    snowfall72hInches: 7.5,
     snowToLiquidRatio: 12.0,
     freezingLevelElevationFt: 2100,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 32,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3344, baseFt: 1144 }, 6.0, 2200),
   },
   {
     resortId: "stratton",
@@ -335,14 +374,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 5.5,
     snowfall24hInches: 3.0,
     snowfall48hInches: 5.5,
+    snowfall72hInches: 7.0,
     snowToLiquidRatio: 11.5,
     freezingLevelElevationFt: 2200,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 30,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3875, baseFt: 1872 }, 5.5, 2300),
   },
   {
     resortId: "magic-mountain",
@@ -360,14 +401,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 5.0,
     snowfall24hInches: 3.0,
     snowfall48hInches: 5.0,
+    snowfall72hInches: 6.5,
     snowToLiquidRatio: 11.0,
     freezingLevelElevationFt: 2300,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 26,
+    hourlySeries: generate72hTimeSeries({ summitFt: 2850, baseFt: 1350 }, 5.0, 2400),
   },
   {
     resortId: "mount-snow",
@@ -385,14 +428,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 4.5,
     snowfall24hInches: 2.5,
     snowfall48hInches: 4.5,
+    snowfall72hInches: 6.0,
     snowToLiquidRatio: 10.5,
     freezingLevelElevationFt: 2400,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 28,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3600, baseFt: 1900 }, 4.5, 2500),
   },
 
   // --- NEW HAMPSHIRE (White Mountains) ---
@@ -412,10 +457,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 9.5,
     snowfall24hInches: 6.0,
     snowfall48hInches: 9.5,
+    snowfall72hInches: 13.0,
     snowToLiquidRatio: 14.5,
     freezingLevelElevationFt: 1600,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: true,
     crustRisk: false,
@@ -438,6 +484,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["NW", "N"],
       loadedAspects: ["SE", "S"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4062, baseFt: 1950 }, 9.5, 1800),
   },
   {
     resortId: "cannon-mountain",
@@ -455,23 +502,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 9.0,
     snowfall24hInches: 5.5,
     snowfall48hInches: 9.0,
+    snowfall72hInches: 12.0,
     snowToLiquidRatio: 14.0,
     freezingLevelElevationFt: 1650,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: true,
     crustRisk: false,
     baseDepthInches: 32,
-    windAnalysis: {
-      speedMph: 30,
-      gustMph: 48,
-      directionDeg: 310,
-      cardinal: "NW",
-      windHoldRiskIndex: 75,
-      scouredAspects: ["NW"],
-      loadedAspects: ["SE"],
-    },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4080, baseFt: 1900 }, 9.0, 1850),
   },
   {
     resortId: "bretton-woods",
@@ -489,14 +529,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 8.0,
     snowfall24hInches: 5.0,
     snowfall48hInches: 8.0,
+    snowfall72hInches: 10.5,
     snowToLiquidRatio: 14.0,
     freezingLevelElevationFt: 1700,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 35,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3100, baseFt: 1600 }, 8.0, 1900),
   },
   {
     resortId: "loon-mountain",
@@ -514,14 +556,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 7.0,
     snowfall24hInches: 4.0,
     snowfall48hInches: 7.0,
+    snowfall72hInches: 9.0,
     snowToLiquidRatio: 13.0,
     freezingLevelElevationFt: 1850,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 32,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3050, baseFt: 950 }, 7.0, 2050),
   },
   {
     resortId: "waterville-valley",
@@ -539,14 +583,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 6.5,
     snowfall24hInches: 3.5,
     snowfall48hInches: 6.5,
+    snowfall72hInches: 8.5,
     snowToLiquidRatio: 12.5,
     freezingLevelElevationFt: 1950,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 30,
+    hourlySeries: generate72hTimeSeries({ summitFt: 4004, baseFt: 1984 }, 6.5, 2150),
   },
   {
     resortId: "attitash",
@@ -564,14 +610,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 5.0,
     snowfall24hInches: 3.0,
     snowfall48hInches: 5.0,
+    snowfall72hInches: 7.0,
     snowToLiquidRatio: 11.5,
     freezingLevelElevationFt: 2150,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 26,
+    hourlySeries: generate72hTimeSeries({ summitFt: 2350, baseFt: 600 }, 5.0, 2300),
   },
 
   // --- MAINE ---
@@ -591,10 +639,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 10.5,
     snowfall24hInches: 6.5,
     snowfall48hInches: 10.5,
+    snowfall72hInches: 14.0,
     snowToLiquidRatio: 15.0,
     freezingLevelElevationFt: 1450,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: true,
     crustRisk: false,
@@ -617,6 +666,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["N", "NW"],
       loadedAspects: ["SE", "S"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4237, baseFt: 1417 }, 10.5, 1650),
   },
   {
     resortId: "sunday-river",
@@ -634,14 +684,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 8.0,
     snowfall24hInches: 5.0,
     snowfall48hInches: 8.0,
+    snowfall72hInches: 11.0,
     snowToLiquidRatio: 13.5,
     freezingLevelElevationFt: 1750,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 34,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3140, baseFt: 800 }, 8.0, 1950),
   },
   {
     resortId: "saddleback",
@@ -659,14 +711,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 11.0,
     snowfall24hInches: 7.0,
     snowfall48hInches: 11.0,
+    snowfall72hInches: 15.0,
     snowToLiquidRatio: 15.5,
     freezingLevelElevationFt: 1400,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: true,
     windHoldWarning: true,
     crustRisk: false,
     baseDepthInches: 37,
+    hourlySeries: generate72hTimeSeries({ summitFt: 4120, baseFt: 2120 }, 11.0, 1600),
   },
 
   // --- NEW YORK (Adirondacks & Catskills) ---
@@ -686,10 +740,11 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 7.5,
     snowfall24hInches: 4.5,
     snowfall48hInches: 7.5,
+    snowfall72hInches: 10.0,
     snowToLiquidRatio: 13.0,
     freezingLevelElevationFt: 1900,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: true,
     crustRisk: false,
@@ -712,6 +767,7 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
       scouredAspects: ["W", "NW"],
       loadedAspects: ["E", "SE"],
     },
+    hourlySeries: generate72hTimeSeries({ summitFt: 4867, baseFt: 1220 }, 7.5, 2100),
   },
   {
     resortId: "gore-mountain",
@@ -729,14 +785,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 6.0,
     snowfall24hInches: 3.5,
     snowfall48hInches: 6.0,
+    snowfall72hInches: 8.0,
     snowToLiquidRatio: 12.0,
     freezingLevelElevationFt: 2100,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 30,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3600, baseFt: 1075 }, 6.0, 2250),
   },
   {
     resortId: "hunter-mountain",
@@ -754,14 +812,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 3.0,
     snowfall24hInches: 1.5,
     snowfall48hInches: 3.0,
+    snowfall72hInches: 4.0,
     snowToLiquidRatio: 9.5,
     freezingLevelElevationFt: 2800,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: true,
     baseDepthInches: 24,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3200, baseFt: 1600 }, 3.0, 3000),
   },
   {
     resortId: "windham",
@@ -779,14 +839,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 2.5,
     snowfall24hInches: 1.0,
     snowfall48hInches: 2.5,
+    snowfall72hInches: 3.5,
     snowToLiquidRatio: 9.0,
     freezingLevelElevationFt: 2900,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: true,
     baseDepthInches: 22,
+    hourlySeries: generate72hTimeSeries({ summitFt: 3100, baseFt: 1500 }, 2.5, 3100),
   },
 
   // --- MASSACHUSETTS ---
@@ -806,14 +868,16 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 3.5,
     snowfall24hInches: 2.0,
     snowfall48hInches: 3.5,
+    snowfall72hInches: 4.5,
     snowToLiquidRatio: 10.0,
     freezingLevelElevationFt: 2600,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: false,
     baseDepthInches: 24,
+    hourlySeries: generate72hTimeSeries({ summitFt: 1840, baseFt: 660 }, 3.5, 2750),
   },
   {
     resortId: "wachusett",
@@ -831,13 +895,15 @@ export const COMPREHENSIVE_NORTHEAST_RESORTS: ResortForecast[] = [
     predictedSnowfallInches: 2.0,
     snowfall24hInches: 1.0,
     snowfall48hInches: 2.0,
+    snowfall72hInches: 3.0,
     snowToLiquidRatio: 8.5,
     freezingLevelElevationFt: 2950,
     windowStart: new Date().toISOString(),
-    windowEnd: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+    windowEnd: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
     gladesRecommended: false,
     windHoldWarning: false,
     crustRisk: true,
     baseDepthInches: 20,
+    hourlySeries: generate72hTimeSeries({ summitFt: 2006, baseFt: 1006 }, 2.0, 3100),
   },
 ];

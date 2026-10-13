@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { ResortForecast, ForecastResponse, UserOrigin } from "@/types/resort";
+import dynamic from "next/dynamic";
+import { Toaster, toast } from "sonner";
+import { ResortForecast, ForecastResponse, UserOrigin, PersonaPreset } from "@/types/resort";
 import { calculateDistanceMiles, estimateDriveTime } from "@/lib/geo";
 import { METRO_ORIGINS, COMPREHENSIVE_NORTHEAST_RESORTS } from "@/lib/resortData";
-import { ResortMap } from "@/components/map/ResortMap";
 import { ResortMatrix } from "@/components/resorts/ResortMatrix";
 import { ResortDetailDrawer } from "@/components/resorts/ResortDetailDrawer";
+import { TimelineScrubber } from "@/components/forecast/TimelineScrubber";
+import { FilterBar } from "@/components/filters/FilterBar";
+import { useForecastStream } from "@/hooks/useForecastStream";
 import {
   Snowflake,
   Radio,
@@ -15,19 +19,53 @@ import {
   Zap,
   TrendingUp,
   Wind,
-  ShieldCheck,
   Compass,
-  Sparkles,
 } from "lucide-react";
+
+// Story 5.6: Lazy load MapLibre GL component with ssr: false for fast initial bundle loading
+const ResortMap = dynamic(
+  () => import("@/components/map/ResortMap").then((mod) => mod.ResortMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full min-h-[480px] rounded-2xl bg-slate-950 flex flex-col items-center justify-center border border-slate-800 text-slate-500 text-xs">
+        <Snowflake className="w-8 h-8 animate-spin text-cyan-400 mb-2" />
+        <span>Initializing WebGL Canvas &amp; Mountain Markers...</span>
+      </div>
+    ),
+  }
+);
 
 export default function HomePage() {
   const [resorts, setResorts] = useState<ResortForecast[]>([]);
   const [selectedResort, setSelectedResort] = useState<ResortForecast | null>(null);
   const [activeOrigin, setActiveOrigin] = useState<UserOrigin>(METRO_ORIGINS[0]);
-  const [quickFilter, setQuickFilter] = useState<string>("all");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [sseConnected, setSseConnected] = useState<boolean>(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
+
+  // Story 5.3: 72-Hour Temporal Scrubber state
+  const [scrubHour, setScrubHour] = useState<number>(0);
+
+  // Story 5.4: Custom Persona Profiles & Trip Filters with localStorage persistence
+  const [selectedPersona, setSelectedPersona] = useState<PersonaPreset>("all");
+  const [selectedPasses, setSelectedPasses] = useState<string[]>([]);
+
+  // Load persisted filters and origin from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedOriginId = localStorage.getItem("powder_origin_id");
+      if (savedOriginId) {
+        const found = METRO_ORIGINS.find((o) => o.id === savedOriginId);
+        if (found) setActiveOrigin(found);
+      }
+      const savedPersona = localStorage.getItem("powder_persona") as PersonaPreset;
+      if (savedPersona) setSelectedPersona(savedPersona);
+      const savedPasses = localStorage.getItem("powder_passes");
+      if (savedPasses) setSelectedPasses(JSON.parse(savedPasses));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   const decorateWithDistances = useCallback(
     (items: ResortForecast[], origin: UserOrigin) => {
@@ -56,7 +94,6 @@ export default function HomePage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ForecastResponse = await res.json();
       if (data.items && data.items.length > 0) {
-        // Merge cluster targets with full catalog so all 24 Northeast resorts are populated
         const fetchedMap = new Map(data.items.map((i) => [i.resortId, i]));
         const merged = COMPREHENSIVE_NORTHEAST_RESORTS.map((fixture) => {
           const live = fetchedMap.get(fixture.resortId);
@@ -66,6 +103,7 @@ export default function HomePage() {
               ...live,
               elevationTiers: fixture.elevationTiers ?? live.elevationTiers,
               windAnalysis: fixture.windAnalysis ?? live.windAnalysis,
+              hourlySeries: fixture.hourlySeries,
             };
           }
           return fixture;
@@ -76,7 +114,6 @@ export default function HomePage() {
       }
       setLastSyncTime(new Date().toLocaleTimeString());
     } catch {
-      // In standalone client dev, use full Northeast catalog
       setResorts(decorateWithDistances(COMPREHENSIVE_NORTHEAST_RESORTS, activeOrigin));
       setLastSyncTime(new Date().toLocaleTimeString());
     } finally {
@@ -88,61 +125,61 @@ export default function HomePage() {
   const handleOriginChange = (originId: string) => {
     const found = METRO_ORIGINS.find((o) => o.id === originId) || METRO_ORIGINS[0];
     setActiveOrigin(found);
+    try {
+      localStorage.setItem("powder_origin_id", found.id);
+    } catch {}
     setResorts((prev) => decorateWithDistances(prev, found));
-    if (selectedResort) {
-      const updatedDist = calculateDistanceMiles(
-        found.latitude,
-        found.longitude,
-        selectedResort.latitude,
-        selectedResort.longitude
-      );
-      setSelectedResort({
-        ...selectedResort,
-        distanceMiles: updatedDist,
-        driveTimeEstimate: estimateDriveTime(updatedDist),
-      });
-    }
   };
+
+  const handlePersonaChange = (preset: PersonaPreset) => {
+    setSelectedPersona(preset);
+    try {
+      localStorage.setItem("powder_persona", preset);
+    } catch {}
+  };
+
+  const handleTogglePass = (pass: string) => {
+    setSelectedPasses((prev) => {
+      const next = prev.includes(pass) ? prev.filter((p) => p !== pass) : [...prev, pass];
+      try {
+        localStorage.setItem("powder_passes", JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSelectedPersona("all");
+    setSelectedPasses([]);
+    try {
+      localStorage.removeItem("powder_persona");
+      localStorage.removeItem("powder_passes");
+    } catch {}
+  };
+
+  // Story 5.5: Connect live Server-Sent Events stream with Toast alerting
+  const { isConnected: sseConnected } = useForecastStream({
+    onForecastUpdated: (resortId, powderScore, snowInches) => {
+      setResorts((prev) =>
+        prev.map((r) =>
+          r.resortId === resortId
+            ? { ...r, powderScore, predictedSnowfallInches: snowInches }
+            : r
+        )
+      );
+      setLastSyncTime(new Date().toLocaleTimeString());
+    },
+    onFocusResort: (resortId) => {
+      const match = resorts.find((r) => r.resortId === resortId);
+      if (match) setSelectedResort(match);
+    },
+  });
 
   useEffect(() => {
     fetchForecasts();
+  }, [fetchForecasts]);
 
-    let eventSource: EventSource | null = null;
-    try {
-      eventSource = new EventSource("http://localhost:8080/api/v1/events/stream");
-
-      eventSource.onopen = () => {
-        setSseConnected(true);
-      };
-
-      eventSource.addEventListener("forecast.updated", (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          setResorts((prev) => {
-            const next = prev.map((r) =>
-              r.resortId === payload.resortId ? { ...r, ...payload } : r
-            );
-            return decorateWithDistances(next, activeOrigin);
-          });
-          setLastSyncTime(new Date().toLocaleTimeString());
-        } catch {
-          // ignore
-        }
-      });
-
-      eventSource.onerror = () => {
-        setSseConnected(false);
-      };
-    } catch {
-      setSseConnected(false);
-    }
-
-    return () => {
-      eventSource?.close();
-    };
-  }, [fetchForecasts, decorateWithDistances, activeOrigin]);
-
-  // Aggregate stats
+  // Aggregate summary stats
   const topResort = useMemo(() => {
     if (resorts.length === 0) return null;
     return [...resorts].sort((a, b) => b.powderScore - a.powderScore)[0];
@@ -164,6 +201,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-950">
+      {/* Toast Alert Pipeline */}
+      <Toaster position="top-right" richColors theme="dark" />
+
       {/* Top Navigation Bar */}
       <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -308,51 +348,63 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Story 5.3: Geospatial Map Canvas */}
-        <section className="space-y-3">
-          <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              <span className="text-cyan-400">●</span>
-              <span>Northeast Mountain Topography</span>
-            </h2>
-            <span className="text-xs text-slate-400 hidden sm:inline">
-              Click any pin or table row to inspect elevation tiers &amp; wind models
-            </span>
-          </div>
-          <ResortMap
-            resorts={resorts}
-            selectedResortId={selectedResort?.resortId}
-            onSelectResort={(r) => setSelectedResort(r)}
-          />
-        </section>
+        {/* Story 5.4: Custom Persona Profiles & Season Pass Multi-Select */}
+        <FilterBar
+          selectedPersona={selectedPersona}
+          onSelectPersona={handlePersonaChange}
+          selectedPasses={selectedPasses}
+          onTogglePass={handleTogglePass}
+          onClearAll={handleClearFilters}
+        />
 
-        {/* Story 5.4 & 5.5: Resort Comparison & Ranking Matrix */}
-        <section className="space-y-3 pt-2">
-          <div className="flex justify-between items-center px-1">
-            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-              <span className="text-purple-400">●</span>
-              <span>Resort Comparison &amp; Forecast Ranking</span>
-            </h2>
-            {lastSyncTime && (
-              <span className="text-xs text-slate-500 font-mono">
-                Telemetry synced: {lastSyncTime}
-              </span>
-            )}
-          </div>
-          <ResortMatrix
-            resorts={resorts}
-            selectedResortId={selectedResort?.resortId}
-            onSelectResort={(r) => setSelectedResort(r)}
-            activeQuickFilter={quickFilter}
-            onQuickFilterChange={setQuickFilter}
-          />
-        </section>
+        {/* Story 5.3: 72-Hour Temporal Scrubbing Bar */}
+        <TimelineScrubber
+          currentHourOffset={scrubHour}
+          onChange={setScrubHour}
+        />
+
+        {/* Story 5.6: Responsive Split-Screen Layout (Desktop: 55% Map / 45% Matrix or Stacked) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left: Geospatial Map Canvas (55% on desktop) */}
+          <section className="lg:col-span-7 h-[560px]">
+            <ResortMap
+              resorts={resorts}
+              selectedResortId={selectedResort?.resortId}
+              onSelectResort={(r) => setSelectedResort(r)}
+              hourOffset={scrubHour}
+            />
+          </section>
+
+          {/* Right: Comparison Matrix (45% on desktop) */}
+          <section className="lg:col-span-5 space-y-3">
+            <div className="flex justify-between items-center px-1">
+              <h2 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                <span className="text-cyan-400">●</span>
+                <span>Ranked Mountain Matrix</span>
+              </h2>
+              {lastSyncTime && (
+                <span className="text-[11px] text-slate-500 font-mono">
+                  Synced: {lastSyncTime}
+                </span>
+              )}
+            </div>
+            <ResortMatrix
+              resorts={resorts}
+              selectedResortId={selectedResort?.resortId}
+              onSelectResort={(r) => setSelectedResort(r)}
+              selectedPersona={selectedPersona}
+              selectedPasses={selectedPasses}
+              hourOffset={scrubHour}
+            />
+          </section>
+        </div>
       </main>
 
-      {/* Slide-out Resort Detail Drawer */}
+      {/* Slide-out Resort Detail Drawer with Vertical Elevation Chart */}
       <ResortDetailDrawer
         resort={selectedResort}
         onClose={() => setSelectedResort(null)}
+        hourOffset={scrubHour}
       />
 
       {/* Footer */}

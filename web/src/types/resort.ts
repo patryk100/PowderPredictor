@@ -18,6 +18,22 @@ export interface WindAnalysis {
   loadedAspects: string[];
 }
 
+export interface HourlyForecastStep {
+  hourOffset: number; // 0 to 72
+  timestamp: string;
+  freezingLevelElevationFt: number;
+  summitTempF: number;
+  midTempF: number;
+  baseTempF: number;
+  summitTempC: number;
+  phase: "rain" | "mixed" | "dense_snow" | "blower_powder" | "clear";
+  snowfallInches: number; // cumulative or incremental
+  cumulativeSnowInches: number;
+  windSpeedMph: number;
+  windGustMph: number;
+  inDGZ: boolean; // Dendritic Growth Zone active (-12°C to -18°C)
+}
+
 export interface ResortForecast {
   resortId: string;
   name: string;
@@ -31,9 +47,10 @@ export interface ResortForecast {
   skiableAcres: number;
   powderScore: number; // 0 - 100
   confidenceInterval: number;
-  predictedSnowfallInches: number; // Modeled 48h storm total
+  predictedSnowfallInches: number; // Modeled storm total
   snowfall24hInches: number;
   snowfall48hInches: number;
+  snowfall72hInches?: number;
   snowToLiquidRatio: number;
   freezingLevelElevationFt: number;
   windowStart: string;
@@ -46,6 +63,7 @@ export interface ResortForecast {
   driveTimeEstimate?: string;
   elevationTiers?: ElevationTiers;
   windAnalysis?: WindAnalysis;
+  hourlySeries?: HourlyForecastStep[];
 }
 
 export interface ForecastResponse {
@@ -59,3 +77,5 @@ export interface UserOrigin {
   latitude: number;
   longitude: number;
 }
+
+export type PersonaPreset = "all" | "glade_hunter" | "wind_avoider" | "bluebird_cruiser";

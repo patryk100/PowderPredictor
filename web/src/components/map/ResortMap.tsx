@@ -10,9 +10,10 @@ interface ResortMapProps {
   resorts: ResortForecast[];
   selectedResortId?: string | null;
   onSelectResort?: (resort: ResortForecast) => void;
+  hourOffset?: number;
 }
 
-// Tile Styles (100% Free, Public Domain / No API Key Required)
+// 100% Free, Public Domain / No API Key Required
 const MAP_STYLES: Record<string, any> = {
   dark: {
     version: 8,
@@ -114,6 +115,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   resorts,
   selectedResortId,
   onSelectResort,
+  hourOffset = 0,
 }) => {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<Map | null>(null);
@@ -135,8 +137,8 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       minZoom: 5.2,
       maxZoom: 14,
       maxBounds: [
-        [-76.8, 39.8], // Southwest bounds (PA/NY/NJ border)
-        [-66.2, 47.6], // Northeast bounds (Northern Maine / Canada)
+        [-76.8, 39.8],
+        [-66.2, 47.6],
       ],
       attributionControl: false,
     });
@@ -148,7 +150,6 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       mapInstance.resize();
     });
 
-    // Ensure resizing once DOM settles
     setTimeout(() => {
       mapInstance.resize();
     }, 150);
@@ -169,7 +170,6 @@ export const ResortMap: React.FC<ResortMapProps> = ({
     };
   }, []);
 
-  // Switch Base Layer
   const handleLayerSwitch = (layerKey: "dark" | "topo" | "satellite") => {
     setActiveBaseLayer(layerKey);
     if (map.current) {
@@ -177,7 +177,6 @@ export const ResortMap: React.FC<ResortMapProps> = ({
     }
   };
 
-  // Center/Fly to selected resort smoothly
   useEffect(() => {
     if (!map.current || !selectedResortId) return;
     const target = resorts.find((r) => r.resortId === selectedResortId);
@@ -192,33 +191,37 @@ export const ResortMap: React.FC<ResortMapProps> = ({
     }
   }, [selectedResortId, resorts]);
 
-  // Render Modern SVG Markers
+  // Render SVG Markers synchronized with temporal scrub step
   useEffect(() => {
     if (!map.current) return;
 
-    // Clear old markers
     Object.values(markersRef.current).forEach((m) => m.remove());
     markersRef.current = {};
 
     resorts.forEach((resort) => {
-      const snowfall = resort.snowfall48hInches ?? resort.predictedSnowfallInches;
+      // If scrubbing, pull the exact cumulative snow modeled for this hour
+      let snowfall = resort.snowfall48hInches ?? resort.predictedSnowfallInches;
+      if (hourOffset > 0 && resort.hourlySeries) {
+        const step = resort.hourlySeries.find((s) => s.hourOffset === hourOffset);
+        if (step) {
+          snowfall = step.cumulativeSnowInches;
+        }
+      }
+
       const colorInfo = getSnowfallColor(snowfall);
       const isSelected = selectedResortId === resort.resortId;
 
-      // Outer wrapper
       const el = document.createElement("div");
       el.className = "group relative cursor-pointer select-none transition-all duration-300 transform -translate-x-1/2 -translate-y-1/2";
       el.style.width = isSelected ? "46px" : "38px";
       el.style.height = isSelected ? "46px" : "38px";
 
-      // Pulsing glow ring when selected or when heavy powder (>12")
       const haloClass = isSelected
         ? "absolute -inset-1 rounded-full bg-cyan-400/50 animate-ping"
         : snowfall >= 12
         ? "absolute -inset-1 rounded-full bg-purple-500/40 animate-pulse"
         : "hidden";
 
-      // SVG Badge Structure
       el.innerHTML = `
         <div class="${haloClass}"></div>
         <div class="relative w-full h-full rounded-2xl flex flex-col items-center justify-center shadow-2xl transition-all duration-200 border-2 ${
@@ -229,11 +232,12 @@ export const ResortMap: React.FC<ResortMapProps> = ({
           <div class="flex items-center gap-0.5 leading-none">
             <span class="text-xs font-black text-white font-mono tracking-tight drop-shadow">${Math.round(snowfall)}"</span>
           </div>
-          <span class="text-[8px] font-bold text-white/90 uppercase tracking-tighter leading-none mt-0.5">48h</span>
+          <span class="text-[8px] font-bold text-white/90 uppercase tracking-tighter leading-none mt-0.5">
+            ${hourOffset > 0 ? `+${hourOffset}h` : "48h"}
+          </span>
         </div>
       `;
 
-      // Hover elevation preview
       el.addEventListener("mouseenter", () => {
         setHoveredResort(resort);
       });
@@ -241,7 +245,6 @@ export const ResortMap: React.FC<ResortMapProps> = ({
         setHoveredResort((prev) => (prev?.resortId === resort.resortId ? null : prev));
       });
 
-      // Click selection
       el.addEventListener("click", () => {
         if (onSelectResort) {
           onSelectResort(resort);
@@ -254,7 +257,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
 
       markersRef.current[resort.resortId] = marker;
     });
-  }, [resorts, selectedResortId, mapLoaded, activeBaseLayer, onSelectResort]);
+  }, [resorts, selectedResortId, mapLoaded, activeBaseLayer, hourOffset, onSelectResort]);
 
   const resetView = useCallback(() => {
     map.current?.flyTo({
@@ -265,13 +268,11 @@ export const ResortMap: React.FC<ResortMapProps> = ({
   }, []);
 
   return (
-    <div className="relative w-full h-[540px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#090d16] group">
-      {/* MapLibre WebGL Canvas Container */}
+    <div className="relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border border-slate-800/80 shadow-2xl bg-[#090d16] group">
       <div ref={mapContainer} className="w-full h-full" />
 
-      {/* Map Controls: Layer Switcher & Reset Zoom */}
+      {/* Map Controls */}
       <div className="absolute top-4 right-14 z-20 flex items-center gap-2">
-        {/* Layer Selector Chips */}
         <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 shadow-xl text-xs">
           <button
             onClick={() => handleLayerSwitch("dark")}
@@ -291,7 +292,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
                 : "text-slate-400 hover:text-white"
             }`}
           >
-            USGS Topo
+            Topo
           </button>
           <button
             onClick={() => handleLayerSwitch("satellite")}
@@ -305,7 +306,6 @@ export const ResortMap: React.FC<ResortMapProps> = ({
           </button>
         </div>
 
-        {/* Reset View Button */}
         <button
           onClick={resetView}
           title="Reset Northeast View"
@@ -320,12 +320,12 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       <div className="absolute top-4 left-4 z-20 bg-slate-900/90 backdrop-blur-md border border-slate-700/80 rounded-xl p-3 text-xs shadow-2xl pointer-events-auto">
         <div className="font-bold text-slate-200 mb-2 flex items-center gap-1.5">
           <Snowflake className="w-4 h-4 text-cyan-400" />
-          <span>48h Snow Accumulation</span>
+          <span>{hourOffset > 0 ? `+${hourOffset}h Accumulation` : "48h Accumulation"}</span>
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 rounded-md bg-[#64748b] border border-slate-400 inline-block shadow-sm" />
-            <span className="text-slate-300">&lt; 2&quot; (Dusting / Flurries)</span>
+            <span className="text-slate-300">&lt; 2&quot; (Dusting)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 rounded-md bg-[#38bdf8] border border-white inline-block shadow-sm" />
@@ -337,12 +337,12 @@ export const ResortMap: React.FC<ResortMapProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3.5 h-3.5 rounded-md bg-[#7e22ce] border border-white inline-block shadow-sm" />
-            <span className="text-slate-300 font-semibold text-purple-300">12&quot;+ (Deep Storm Cycle)</span>
+            <span className="text-slate-300 font-semibold text-purple-300">12&quot;+ (Deep Dump)</span>
           </div>
         </div>
       </div>
 
-      {/* Floating Hover Elevation Range Tooltip */}
+      {/* Hover Tooltip */}
       {hoveredResort && (
         <div className="absolute bottom-4 left-4 z-20 bg-slate-900/95 backdrop-blur-xl border border-cyan-500/60 rounded-xl px-4 py-3 text-xs shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-2 pointer-events-none">
           <div className="flex items-center gap-2 mb-1.5">

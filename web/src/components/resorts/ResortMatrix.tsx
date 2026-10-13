@@ -10,7 +10,7 @@ import {
   ColumnDef,
   SortingState,
 } from "@tanstack/react-table";
-import { ResortForecast } from "@/types/resort";
+import { ResortForecast, PersonaPreset } from "@/types/resort";
 import { getPowderScoreBadge, getSnowfallColor } from "@/lib/geo";
 import {
   ArrowUpDown,
@@ -29,30 +29,37 @@ interface ResortMatrixProps {
   resorts: ResortForecast[];
   selectedResortId?: string | null;
   onSelectResort?: (resort: ResortForecast) => void;
-  activeQuickFilter?: string;
-  onQuickFilterChange?: (filter: string) => void;
+  selectedPersona?: PersonaPreset;
+  selectedPasses?: string[];
+  hourOffset?: number;
 }
 
 export const ResortMatrix: React.FC<ResortMatrixProps> = ({
   resorts,
   selectedResortId,
   onSelectResort,
-  activeQuickFilter = "all",
-  onQuickFilterChange,
+  selectedPersona = "all",
+  selectedPasses = [],
+  hourOffset = 0,
 }) => {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [sorting, setSorting] = useState<SortingState>([
     { id: "powderScore", desc: true },
   ]);
   const [regionFilter, setRegionFilter] = useState<string>("ALL");
-  const [passFilter, setPassFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Filter items including Quick Filter chips
+  // Filter items based on Persona Presets & Pass Multi-Select
   const filteredData = useMemo(() => {
     return resorts.filter((r) => {
       if (regionFilter !== "ALL" && r.region !== regionFilter) return false;
-      if (passFilter !== "ALL" && r.passType !== passFilter) return false;
+
+      // Pass Multi-Select
+      if (selectedPasses.length > 0 && !selectedPasses.includes(r.passType)) {
+        return false;
+      }
+
+      // Search Query
       if (
         searchQuery &&
         !r.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -61,16 +68,24 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         return false;
       }
 
-      // Quick-filter chips
-      if (activeQuickFilter === "powder" && r.powderScore < 80) return false;
-      if (activeQuickFilter === "snow" && (r.snowfall48hInches ?? r.predictedSnowfallInches) < 8)
-        return false;
-      if (activeQuickFilter === "drive" && (r.distanceMiles ?? 999) > 160) return false; // approx <3h drive
-      if (activeQuickFilter === "blower" && r.snowToLiquidRatio < 15.0) return false;
+      // Persona Filters
+      if (selectedPersona === "glade_hunter") {
+        if (r.powderScore < 80 || r.snowToLiquidRatio < 14.0 || r.baseDepthInches < 24) {
+          return false;
+        }
+      } else if (selectedPersona === "wind_avoider") {
+        if (r.windHoldWarning || (r.windAnalysis?.gustMph ?? 0) > 35) {
+          return false;
+        }
+      } else if (selectedPersona === "bluebird_cruiser") {
+        if ((r.windAnalysis?.speedMph ?? 0) >= 15 || r.crustRisk) {
+          return false;
+        }
+      }
 
       return true;
     });
-  }, [resorts, regionFilter, passFilter, searchQuery, activeQuickFilter]);
+  }, [resorts, regionFilter, selectedPasses, searchQuery, selectedPersona]);
 
   // Define Table Columns
   const columns = useMemo<ColumnDef<ResortForecast>[]>(
@@ -146,14 +161,20 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
         },
       },
       {
-        id: "snowfall48h",
-        accessorFn: (row) => row.snowfall48hInches ?? row.predictedSnowfallInches,
+        id: "snowAccum",
+        accessorFn: (row) => {
+          if (hourOffset > 0 && row.hourlySeries) {
+            const step = row.hourlySeries.find((s) => s.hourOffset === hourOffset);
+            if (step) return step.cumulativeSnowInches;
+          }
+          return row.snowfall48hInches ?? row.predictedSnowfallInches;
+        },
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="flex items-center gap-1 font-semibold text-slate-300 hover:text-white cursor-pointer"
           >
-            48h Storm Snow
+            {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Storm Snow"}
             <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-slate-500" />
           </button>
         ),
@@ -258,14 +279,14 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
       {
         id: "action",
         header: "",
-        cell: ({ row }) => (
+        cell: () => (
           <div className="flex justify-end text-slate-500 group-hover:text-cyan-400">
             <ChevronRight className="w-4 h-4" />
           </div>
         ),
       },
     ],
-    []
+    [hourOffset]
   );
 
   const table = useReactTable({
@@ -280,7 +301,7 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
 
   return (
     <div className="w-full space-y-4">
-      {/* Control Bar: Filters, Quick Chips, Search, and View Switcher */}
+      {/* Control Bar: Filters, Region Tabs, Search, and View Switcher */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-xl">
         {/* Search & Region Tabs */}
         <div className="flex flex-wrap items-center gap-3">
@@ -308,19 +329,6 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
               </button>
             ))}
           </div>
-
-          {/* Pass Type Filter */}
-          <select
-            value={passFilter}
-            onChange={(e) => setPassFilter(e.target.value)}
-            className="bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-cyan-400 cursor-pointer shadow-inner"
-          >
-            <option value="ALL">All Passes</option>
-            <option value="Ikon">Ikon Pass</option>
-            <option value="Epic">Epic Pass</option>
-            <option value="Indy">Indy Pass</option>
-            <option value="Independent">Independent</option>
-          </select>
         </div>
 
         {/* View Mode Toggle */}
@@ -349,32 +357,6 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Quick Filter Chips */}
-      {onQuickFilterChange && (
-        <div className="flex flex-wrap items-center gap-2 px-1 text-xs">
-          <span className="text-slate-400 text-[11px] font-semibold mr-1">Quick Filters:</span>
-          {[
-            { id: "all", label: "All Mountains" },
-            { id: "powder", label: "High Powder Score (≥80)" },
-            { id: "snow", label: "Most Snow (≥8\")" },
-            { id: "drive", label: "Under 3 Hours Drive" },
-            { id: "blower", label: "Blower Powder (SLR ≥15:1)" },
-          ].map((chip) => (
-            <button
-              key={chip.id}
-              onClick={() => onQuickFilterChange(chip.id)}
-              className={`px-3 py-1.5 rounded-full font-semibold border transition-all cursor-pointer ${
-                activeQuickFilter === chip.id
-                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-sm shadow-cyan-400/20"
-                  : "bg-slate-900/60 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200"
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* Table View */}
       {viewMode === "table" ? (
@@ -432,8 +414,11 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
             </div>
           ) : (
             filteredData.map((resort) => {
-              const snowfall = resort.snowfall48hInches ?? resort.predictedSnowfallInches;
-              const colorInfo = getSnowfallColor(snowfall);
+              const snowfall =
+                hourOffset > 0 && resort.hourlySeries
+                  ? resort.hourlySeries.find((s) => s.hourOffset === hourOffset)?.cumulativeSnowInches ?? resort.predictedSnowfallInches
+                  : resort.snowfall48hInches ?? resort.predictedSnowfallInches;
+
               const scoreBadge = getPowderScoreBadge(resort.powderScore);
               const isSelected = selectedResortId === resort.resortId;
 
@@ -469,7 +454,9 @@ export const ResortMatrix: React.FC<ResortMatrixProps> = ({
                     </div>
 
                     <div className="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">48h Snow Total</span>
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">
+                        {hourOffset > 0 ? `+${hourOffset}h Snow` : "48h Snow Total"}
+                      </span>
                       <div className="flex items-baseline gap-1 mt-0.5">
                         <span className="text-2xl font-black text-purple-400 font-mono">{snowfall}&quot;</span>
                         <span className="text-[10px] text-slate-400 font-mono">SLR {resort.snowToLiquidRatio}:1</span>
