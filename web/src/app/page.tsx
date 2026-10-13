@@ -415,9 +415,8 @@ export default function HomePage() {
         <div className="space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
             <div className="space-y-2">
-              <div className="text-xs font-semibold tracking-wider uppercase text-sky-400 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span>Atmospheric Lapse Rate &amp; Terrain Downscaling</span>
+              <div className="text-xs font-semibold tracking-wider uppercase text-sky-400">
+                Atmospheric Lapse Rate &amp; Terrain Downscaling
               </div>
               <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-[#fbfbfa] leading-tight">
                 Northeast Mountain Weather &amp;{" "}
