@@ -153,12 +153,27 @@ type SurfaceObservationSnapshot struct {
 	ElevationFt int         `json:"elevationFt"`
 	Coordinates Coordinates `json:"coordinates"`
 
-	TemperatureF     float64 `json:"temperatureF"`
-	SnowDepthInches  float64 `json:"snowDepthInches"`
-	SWEInches        float64 `json:"sweInches"` // Snow Water Equivalent
-	WindSpeedMph     float64 `json:"windSpeedMph"`
-	WindGustMph      float64 `json:"windGustMph"`
-	WindDirectionDeg int     `json:"windDirectionDeg"`
+	// DistanceMiles from associated target resort
+	DistanceMiles float64 `json:"distanceMiles,omitempty"`
+
+	TemperatureF             float64 `json:"temperatureF"`
+	SnowDepthInches          float64 `json:"snowDepthInches"`
+	SnowDepthChange24hInches float64 `json:"snowDepthChange24hInches"`
+	SWEInches                float64 `json:"sweInches"` // Snow Water Equivalent
+	WindSpeedMph             float64 `json:"windSpeedMph"`
+	WindGustMph              float64 `json:"windGustMph"`
+	WindDirectionDeg         int     `json:"windDirectionDeg"`
+
+	// RimeIndicator indicates high-elevation supercooled droplet riming / fog
+	RimeIndicator bool `json:"rimeIndicator,omitempty"`
+
+	// TelemetryStale is flagged if observation timestamp is older than 4 hours
+	TelemetryStale bool `json:"telemetryStale"`
+}
+
+// IsStale checks if telemetry is older than the provided threshold (e.g. 4 hours)
+func (s *SurfaceObservationSnapshot) IsStale(threshold time.Duration) bool {
+	return time.Since(s.Timestamp) > threshold
 }
 
 // WeatherProvider defines the contract for gridded atmospheric forecast connectors
