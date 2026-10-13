@@ -8,7 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	weatherv1alpha1 "github.com/powderpredictor/operator/api/v1alpha1"
 )
 
@@ -24,7 +27,23 @@ func NewServer(store *InClusterStore, broker *EventBroker) *Server {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(corsMiddleware())
+	r.Use(PrometheusMiddleware())
+
+	// Story 4.4: CORS allowing origin requests strictly from localhost:3000 and verified local ingress hosts
+	corsConfig := cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"http://127.0.0.1:3000",
+			"http://powderpredictor.local",
+			"http://localhost:8080",
+		},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}
+	r.Use(cors.New(corsConfig))
 
 	s := &Server{
 		router: r,
@@ -42,6 +61,9 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) registerRoutes() {
+	// Prometheus Metrics endpoint
+	s.router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	// Readiness & health probes
 	s.router.GET("/healthz", s.handleHealthz)
 	s.router.GET("/readyz", s.handleReadyz)
@@ -60,12 +82,14 @@ func (s *Server) handleHealthz(c *gin.Context) {
 
 func (s *Server) handleReadyz(c *gin.Context) {
 	if s.store == nil || !s.store.HasSynced() {
+		InformerCacheSyncStatus.Set(0)
 		c.JSON(http.StatusServiceUnavailable, gin.H{
 			"status":  "syncing",
 			"message": "Informer caches have not finished initial cluster synchronization",
 		})
 		return
 	}
+	InformerCacheSyncStatus.Set(1)
 	c.JSON(http.StatusOK, gin.H{"status": "ready"})
 }
 
@@ -198,7 +222,11 @@ func (s *Server) handleEventStream(c *gin.Context) {
 
 	subID := fmt.Sprintf("sub-%d", time.Now().UnixNano())
 	sub, unsubscribe := s.broker.Subscribe(subID)
-	defer unsubscribe()
+	ActiveSSEClients.Inc()
+	defer func() {
+		ActiveSSEClients.Dec()
+		unsubscribe()
+	}()
 
 	c.Writer.Flush()
 

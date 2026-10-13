@@ -1,0 +1,264 @@
+openapi: 3.0.3
+info:
+  title: PowderPredictor API Gateway
+  description: Kubernetes-native meteorological backend bridge streaming aggregated resort telemetry, microclimate downscaling, and live powder score updates.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development gateway
+  - url: http://powderpredictor.local
+    description: Cluster Ingress host
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+      description: Returns 200 OK when the HTTP gateway process is alive.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /readyz:
+    get:
+      summary: Readiness probe
+      description: Returns 200 OK once the Kubernetes dynamic informer cache has finished initial cluster synchronization.
+      responses:
+        '200':
+          description: Gateway is ready to serve traffic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+        '503':
+          description: Informer caches are still syncing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: syncing
+                  message:
+                    type: string
+
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      description: Scrapes Prometheus formatted counters, histograms, and gauges (powder_api_http_requests_total, powder_api_active_sse_clients, powder_api_informer_cache_sync_status).
+      responses:
+        '200':
+          description: Standard Prometheus text format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/forecasts:
+    get:
+      summary: List and rank resort forecasts
+      description: Returns aggregated mountain target telemetry joined with active powder forecasts, supporting sorting, filtering, and geographic proximity calculation.
+      parameters:
+        - name: sort_by
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            enum: [powder_score, snowfall_48h, confidence, distance]
+            default: powder_score
+        - name: order
+          in: query
+          description: Sort ordering direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: region
+          in: query
+          description: Geographic sub-region filter
+          schema:
+            type: string
+            enum: [VT, NH, ME, NY]
+        - name: pass_type
+          in: query
+          description: Season pass partnership filter
+          schema:
+            type: string
+            enum: [Ikon, Epic, Indy, Independent]
+        - name: min_score
+          in: query
+          description: Minimum Powder Score threshold
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: user_lat
+          in: query
+          description: Client latitude for proximity calculation
+          schema:
+            type: number
+            format: float
+        - name: user_lon
+          in: query
+          description: Client longitude for proximity calculation
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Ranked list of resort forecasts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AggregatedForecastResponse'
+
+  /api/v1/forecasts/{resortId}:
+    get:
+      summary: Get detailed multi-elevation resort forecast
+      description: Returns detailed physical mountain bounds, elevation tiers (base, mid, summit), lapse rates, and conditions for a specific resort.
+      parameters:
+        - name: resortId
+          in: path
+          required: true
+          description: Unique resort slug name (e.g. jay-peak, killington)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detailed mountain microclimate forecast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResortDetailResponse'
+        '404':
+          description: Resort target not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: not_found
+                  message:
+                    type: string
+
+  /api/v1/events/stream:
+    get:
+      summary: Real-time Server-Sent Events (SSE) stream
+      description: Opens an HTTP text/event-stream connection broadcasting real-time forecast updates (forecast.updated) and powder alerts (powder.alert) with 15s keep-alive pings.
+      responses:
+        '200':
+          description: Open event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+components:
+  schemas:
+    AggregatedForecastResponse:
+      type: object
+      properties:
+        resortId:
+          type: string
+          example: jay-peak
+        name:
+          type: string
+          example: Jay Peak
+        region:
+          type: string
+          example: VT
+        passType:
+          type: string
+          example: Indy
+        latitude:
+          type: number
+          example: 44.9248
+        longitude:
+          type: number
+          example: -72.5034
+        summitFt:
+          type: integer
+          example: 3968
+        baseFt:
+          type: integer
+          example: 1815
+        verticalFt:
+          type: integer
+          example: 2153
+        skiableAcres:
+          type: integer
+          example: 385
+        powderScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 95
+        confidenceInterval:
+          type: number
+          example: 92.0
+        predictedSnowfallInches:
+          type: number
+          example: 16.5
+        snowToLiquidRatio:
+          type: number
+          example: 17.0
+        freezingLevelElevationFt:
+          type: integer
+          example: 1200
+        windowStart:
+          type: string
+          format: date-time
+        windowEnd:
+          type: string
+          format: date-time
+        gladesRecommended:
+          type: boolean
+          example: true
+        windHoldWarning:
+          type: boolean
+          example: false
+        crustRisk:
+          type: boolean
+          example: false
+        distanceMiles:
+          type: number
+          example: 215.4
+        driveTimeEstimate:
+          type: string
+          example: 4h18m
+
+    ResortDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/AggregatedForecastResponse'
+        - type: object
+          properties:
+            primaryAspects:
+              type: array
+              items:
+                type: string
+                example: NorthEast
+            midMountainFt:
+              type: integer
+              example: 2891
+            lapseRateFPer1000Ft:
+              type: number
+              example: 3.5

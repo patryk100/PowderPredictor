@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: powder-api-gateway
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: powder-api-gateway-role
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+rules:
+  # Story 4.4: Strictly read-only permissions for custom weather resources (rejecting create, update, delete)
+  - apiGroups:
+      - weather.powderpredictor.io
+    resources:
+      - resorttargets
+      - snowforecastreports
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: powder-api-gateway-binding
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: powder-api-gateway-role
+subjects:
+  - kind: ServiceAccount
+    name: powder-api-gateway
+    namespace: powder-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: powder-api-gateway
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: powder-api-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: powder-api-gateway
+    spec:
+      serviceAccountName: powder-api-gateway
+      # Story 4.4: Strict pod-level non-root security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api-gateway
+          image: api-gateway:latest
+          imagePullPolicy: IfNotPresent
+          command:
+            - /manager
+          args:
+            - --port=8080
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # Story 4.4: Strict container-level non-root security context
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          # Story 4.5: Health Probes
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          # Story 4.4: Resource limits & requests
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: powder-api-gateway
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: powder-api-gateway
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: powder-api-gateway-ingress
+  namespace: powder-system
+  labels:
+    app.kubernetes.io/name: powder-api-gateway
+    app.kubernetes.io/part-of: powderpredictor
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: powderpredictor.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: powder-api-gateway
+                port:
+                  number: 8080
