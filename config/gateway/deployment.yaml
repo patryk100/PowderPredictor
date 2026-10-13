@@ -15,7 +15,7 @@ metadata:
     app.kubernetes.io/name: powder-api-gateway
     app.kubernetes.io/part-of: powderpredictor
 rules:
-  # Story 4.4: Strictly read-only permissions for custom weather resources (rejecting create, update, delete)
+  # Strictly read-only permissions for custom weather resources (rejecting create, update, delete)
   - apiGroups:
       - weather.powderpredictor.io
     resources:
@@ -61,7 +61,7 @@ spec:
         app.kubernetes.io/name: powder-api-gateway
     spec:
       serviceAccountName: powder-api-gateway
-      # Story 4.4: Strict pod-level non-root security context
+      # Strict pod-level non-root security context
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -81,14 +81,14 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
-          # Story 4.4: Strict container-level non-root security context
+          # Strict container-level non-root security context
           securityContext:
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:
               drop:
                 - ALL
-          # Story 4.5: Health Probes
+          # Health Probes
           livenessProbe:
             httpGet:
               path: /healthz
@@ -101,7 +101,7 @@ spec:
               port: 8080
             initialDelaySeconds: 3
             periodSeconds: 5
-          # Story 4.4: Resource limits & requests
+          # Resource limits & requests
           resources:
             requests:
               cpu: 100m

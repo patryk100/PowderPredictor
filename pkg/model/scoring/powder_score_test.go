@@ -98,7 +98,7 @@ func TestCalculatePowderScore_FreezingLineConfidencePenalty(t *testing.T) {
 	}
 }
 
-// Story 3.6: Historical Storm Benchmark Validations
+// Historical Storm Benchmark Validations
 
 func TestHistoricalNoreaster(t *testing.T) {
 	// Classic Nor'easter: High QPF (18" new), cold wrap-around temperatures (16°F), high SLR (16:1), sustained 36h cold

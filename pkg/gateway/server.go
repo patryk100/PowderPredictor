@@ -29,7 +29,7 @@ func NewServer(store *InClusterStore, broker *EventBroker) *Server {
 	r.Use(gin.Recovery())
 	r.Use(PrometheusMiddleware())
 
-	// Story 4.4: CORS allowing origin requests strictly from localhost:3000 and verified local ingress hosts
+	// CORS allowing origin requests strictly from localhost:3000 and verified local ingress hosts
 	corsConfig := cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:3000",

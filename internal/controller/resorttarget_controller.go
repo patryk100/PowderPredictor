@@ -135,7 +135,7 @@ func (r *ResortTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		// At least one provider succeeded
 		target.Status.IngestionBackoffCount = 0
 
-		// Story 3.5: Execute microclimate modeling pipeline and sync child SnowForecastReport
+		// Execute microclimate modeling pipeline and sync child SnowForecastReport
 		ensemblePredictions := []float64{ingestResult.Snapshot.TotalSummitSnowfallInches}
 		evaluated := model.EvaluateTargetForecast(target, ingestResult.Snapshot, 30.0, ensemblePredictions)
 
