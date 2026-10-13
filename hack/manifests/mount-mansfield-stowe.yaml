@@ -1,0 +1,17 @@
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: ResortTarget
+metadata:
+  name: mount-mansfield-stowe
+  namespace: powder-system
+spec:
+  latitude: 44.5303
+  longitude: -72.7814
+  summitElevationFt: 4395
+  baseElevationFt: 1280
+  region: "VT"
+  skiableAcres: 485
+  syncInterval: "15m"
+  primaryAspects:
+    - "East"
+    - "NorthEast"
+    - "SouthEast"

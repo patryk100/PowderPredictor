@@ -12,10 +12,12 @@ import (
 type WeatherScenario string
 
 const (
-	ScenarioNoreaster  WeatherScenario = "noreaster"
-	ScenarioColdSnap   WeatherScenario = "cold_snap"
-	ScenarioThawFreeze WeatherScenario = "thaw_freeze"
-	ScenarioMalformed  WeatherScenario = "malformed"
+	ScenarioNoreaster      WeatherScenario = "noreaster"
+	ScenarioColdSnap       WeatherScenario = "cold_snap"
+	ScenarioThawFreeze     WeatherScenario = "thaw_freeze"
+	ScenarioMalformed      WeatherScenario = "malformed"
+	ScenarioProviderOutage WeatherScenario = "provider_outage"
+	ScenarioRainSnowSplit  WeatherScenario = "rain_snow_split"
 )
 
 // MockWeatherServer simulates NOAA NWS and Open-Meteo APIs for offline testing and local Kind/Tilt loops
@@ -32,6 +34,11 @@ func NewMockWeatherServer(scenario WeatherScenario) *MockWeatherServer {
 	// 1. NOAA NWS /points/{lat},{lon}
 	mux.HandleFunc("/points/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if m.scenario == ScenarioProviderOutage {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"status": 503, "error": "upstream outage"}`))
+			return
+		}
 		if m.scenario == ScenarioMalformed {
 			_, _ = w.Write([]byte(`{ "invalid_json": true `))
 			return
@@ -61,6 +68,11 @@ func NewMockWeatherServer(scenario WeatherScenario) *MockWeatherServer {
 	// 3. Open-Meteo /v1/forecast
 	mux.HandleFunc("/v1/forecast", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
+		if m.scenario == ScenarioProviderOutage {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte(`{"error": true, "reason": "outage"}`))
+			return
+		}
 		if m.scenario == ScenarioMalformed {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return

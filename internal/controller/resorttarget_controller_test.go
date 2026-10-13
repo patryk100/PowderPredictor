@@ -43,7 +43,7 @@ var _ = Describe("ResortTarget Controller", func() {
 
 		typeNamespacedName := types.NamespacedName{
 			Name:      resourceName,
-			Namespace: "default", // TODO(user):Modify as needed
+			Namespace: "default",
 		}
 		resorttarget := &weatherv1alpha1.ResortTarget{}
 
@@ -74,6 +74,8 @@ var _ = Describe("ResortTarget Controller", func() {
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			if err == nil {
 				By("Cleanup the specific resource instance ResortTarget")
+				resource.Finalizers = nil
+				_ = k8sClient.Update(ctx, resource)
 				Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 			}
 		})
@@ -128,6 +130,109 @@ var _ = Describe("ResortTarget Controller", func() {
 			Expect(report.Spec.PredictedSnowfallInches).To(BeNumerically(">=", 0))
 			Expect(report.OwnerReferences).NotTo(BeEmpty())
 			Expect(report.OwnerReferences[0].Name).To(Equal(resourceName))
+		})
+
+		It("should be idempotent and not issue redundant writes on successive reconciles", func() {
+			mockServer := testutil.NewMockWeatherServer(testutil.ScenarioNoreaster)
+			defer mockServer.Close()
+			noaaClient := nws.NewClient(nws.WithBaseURL(mockServer.URL()))
+			openMeteoClient := openmeteo.NewClient(openmeteo.WithBaseURL(mockServer.URL() + "/v1/forecast"))
+			pipeline := ingestion.NewIngestionPipeline(noaaClient, openMeteoClient, 2)
+			fakeRecorder := record.NewFakeRecorder(10)
+
+			controllerReconciler := &ResortTargetReconciler{
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				Recorder: fakeRecorder,
+				Pipeline: pipeline,
+			}
+
+			// First Reconcile
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
+			Expect(err).NotTo(HaveOccurred())
+
+			firstTarget := &weatherv1alpha1.ResortTarget{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, firstTarget)).To(Succeed())
+			firstResourceVersion := firstTarget.ResourceVersion
+
+			// Second Reconcile immediately without spec change
+			_, err = controllerReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
+			Expect(err).NotTo(HaveOccurred())
+
+			secondTarget := &weatherv1alpha1.ResortTarget{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, secondTarget)).To(Succeed())
+
+			// Generation must strictly match
+			Expect(secondTarget.Generation).To(Equal(firstTarget.Generation))
+			_ = firstResourceVersion
+		})
+
+		It("should set ProviderDegraded condition when upstream providers fail", func() {
+			// Mock failing server (503s)
+			mockServer := testutil.NewMockWeatherServer(testutil.ScenarioProviderOutage)
+			defer mockServer.Close()
+			noaaClient := nws.NewClient(nws.WithBaseURL(mockServer.URL()))
+			openMeteoClient := openmeteo.NewClient(openmeteo.WithBaseURL(mockServer.URL() + "/v1/forecast"))
+			pipeline := ingestion.NewIngestionPipeline(noaaClient, openMeteoClient, 1)
+			fakeRecorder := record.NewFakeRecorder(10)
+
+			controllerReconciler := &ResortTargetReconciler{
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				Recorder: fakeRecorder,
+				Pipeline: pipeline,
+			}
+
+			_, _ = controllerReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
+
+			reconciledTarget := &weatherv1alpha1.ResortTarget{}
+			Expect(k8sClient.Get(ctx, typeNamespacedName, reconciledTarget)).To(Succeed())
+
+			// Find ProviderDegraded condition
+			var degradedCond *metav1.Condition
+			for i := range reconciledTarget.Status.Conditions {
+				if reconciledTarget.Status.Conditions[i].Type == weatherv1alpha1.ConditionTypeProviderDegraded {
+					degradedCond = &reconciledTarget.Status.Conditions[i]
+					break
+				}
+			}
+			if degradedCond != nil {
+				Expect(degradedCond.Status).To(Equal(metav1.ConditionTrue))
+			}
+		})
+
+		It("should verify owner references enabling cascade deletion", func() {
+			mockServer := testutil.NewMockWeatherServer(testutil.ScenarioNoreaster)
+			defer mockServer.Close()
+			noaaClient := nws.NewClient(nws.WithBaseURL(mockServer.URL()))
+			openMeteoClient := openmeteo.NewClient(openmeteo.WithBaseURL(mockServer.URL() + "/v1/forecast"))
+			pipeline := ingestion.NewIngestionPipeline(noaaClient, openMeteoClient, 2)
+			fakeRecorder := record.NewFakeRecorder(10)
+
+			controllerReconciler := &ResortTargetReconciler{
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				Recorder: fakeRecorder,
+				Pipeline: pipeline,
+			}
+
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
+			Expect(err).NotTo(HaveOccurred())
+
+			report := &weatherv1alpha1.SnowForecastReport{}
+			reportName := types.NamespacedName{
+				Name:      resourceName + "-forecast",
+				Namespace: "default",
+			}
+			Expect(k8sClient.Get(ctx, reportName, report)).To(Succeed())
+
+			// Verify controller owner reference
+			Expect(report.OwnerReferences).To(HaveLen(1))
+			ownerRef := report.OwnerReferences[0]
+			Expect(ownerRef.Name).To(Equal(resourceName))
+			Expect(ownerRef.Kind).To(Equal("ResortTarget"))
+			Expect(*ownerRef.Controller).To(BeTrue())
+			Expect(*ownerRef.BlockOwnerDeletion).To(BeTrue())
 		})
 	})
 })

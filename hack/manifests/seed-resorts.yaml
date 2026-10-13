@@ -1,0 +1,70 @@
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: ResortTarget
+metadata:
+  name: jay-peak
+  namespace: powder-system
+spec:
+  latitude: 44.9248
+  longitude: -72.5034
+  summitElevationFt: 3968
+  baseElevationFt: 1815
+  region: "VT"
+  skiableAcres: 385
+  syncInterval: "30m"
+  primaryAspects:
+    - "North"
+    - "NorthWest"
+    - "East"
+---
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: ResortTarget
+metadata:
+  name: killington
+  namespace: powder-system
+spec:
+  latitude: 43.6263
+  longitude: -72.7969
+  summitElevationFt: 4241
+  baseElevationFt: 1165
+  region: "VT"
+  skiableAcres: 1509
+  syncInterval: "30m"
+  primaryAspects:
+    - "North"
+    - "NorthEast"
+    - "East"
+---
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: ResortTarget
+metadata:
+  name: stowe
+  namespace: powder-system
+spec:
+  latitude: 44.5303
+  longitude: -72.7814
+  summitElevationFt: 4395
+  baseElevationFt: 1280
+  region: "VT"
+  skiableAcres: 485
+  syncInterval: "30m"
+  primaryAspects:
+    - "East"
+    - "SouthEast"
+    - "NorthEast"
+---
+apiVersion: weather.powderpredictor.io/v1alpha1
+kind: ResortTarget
+metadata:
+  name: wildcat
+  namespace: powder-system
+spec:
+  latitude: 44.2639
+  longitude: -71.2392
+  summitElevationFt: 4062
+  baseElevationFt: 1950
+  region: "NH"
+  skiableAcres: 225
+  syncInterval: "30m"
+  primaryAspects:
+    - "NorthWest"
+    - "North"

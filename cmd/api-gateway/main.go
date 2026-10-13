@@ -48,11 +48,7 @@ func main() {
 
 	store := gateway.NewInClusterStore(broker)
 
-	fmt.Println("Starting dynamic informers and waiting for initial cache sync...")
-	syncCtx, syncCancel := context.WithTimeout(ctx, 30*time.Second)
-	defer syncCancel()
-
-	if err := store.StartInformerSync(syncCtx, dynClient, 10*time.Minute); err != nil {
+	if err := store.StartInformerSync(ctx, dynClient, 10*time.Minute); err != nil {
 		fmt.Printf("Warning: Informer sync failed or timed out: %v\n", err)
 	} else {
 		fmt.Printf("Informer sync complete. Loaded %d ResortTargets.\n", len(store.ListTargets()))
