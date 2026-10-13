@@ -115,6 +115,19 @@ var _ = Describe("ResortTarget Controller", func() {
 			// Verify generation was NOT incremented by status update
 			Expect(reconciledTarget.Generation).To(Equal(initialGeneration))
 			Expect(reconciledTarget.Status.ObservedGeneration).To(Equal(initialGeneration))
+
+			// Verify child SnowForecastReport CR was created and populated
+			report := &weatherv1alpha1.SnowForecastReport{}
+			reportName := types.NamespacedName{
+				Name:      resourceName + "-forecast",
+				Namespace: "default",
+			}
+			Expect(k8sClient.Get(ctx, reportName, report)).To(Succeed())
+			Expect(report.Spec.ResortRef.Name).To(Equal(resourceName))
+			Expect(report.Spec.PowderScore).To(BeNumerically(">=", 0))
+			Expect(report.Spec.PredictedSnowfallInches).To(BeNumerically(">=", 0))
+			Expect(report.OwnerReferences).NotTo(BeEmpty())
+			Expect(report.OwnerReferences[0].Name).To(Equal(resourceName))
 		})
 	})
 })

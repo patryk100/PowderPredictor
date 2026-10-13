@@ -135,9 +135,12 @@ func CalculatePowderScore(input PowderScoreInput) PowderScoreResult {
 
 	rawTotal := accumScore + qualityScore + presScore + windScore + baseScore
 
-	// If finishing with rain or thaw, overall score must not exceed 40 (crusting penalty)
+	// If finishing with rain or thaw, overall score must not exceed 40 (severe crusting penalty)
+	// If rain occurred in the storm sequence, overall score must not exceed 48
 	if input.FinishingRainOrThaw && rawTotal > 39.0 {
 		rawTotal = 38.0
+	} else if input.RecentRainHours > 0 && rawTotal > 48.0 {
+		rawTotal = 45.0
 	}
 
 	finalScore := int(math.Round(math.Max(0.0, math.Min(100.0, rawTotal))))

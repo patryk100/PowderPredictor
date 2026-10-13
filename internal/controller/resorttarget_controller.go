@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -31,6 +32,7 @@ import (
 
 	weatherv1alpha1 "github.com/powderpredictor/operator/api/v1alpha1"
 	"github.com/powderpredictor/operator/pkg/ingestion"
+	"github.com/powderpredictor/operator/pkg/model"
 	"github.com/powderpredictor/operator/pkg/weather"
 )
 
@@ -132,10 +134,29 @@ func (r *ResortTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 		// At least one provider succeeded
 		target.Status.IngestionBackoffCount = 0
-		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, fmt.Sprintf("Forecast updated (Summit snow: %.1fin)", ingestResult.Snapshot.TotalSummitSnowfallInches))
-		if r.Recorder != nil {
-			r.Recorder.Event(target, "Normal", "IngestionSuccess", fmt.Sprintf("Ingested forecast from providers (Summit snow: %.1fin)", ingestResult.Snapshot.TotalSummitSnowfallInches))
+
+		// Story 3.5: Execute microclimate modeling pipeline and sync child SnowForecastReport
+		ensemblePredictions := []float64{ingestResult.Snapshot.TotalSummitSnowfallInches}
+		evaluated := model.EvaluateTargetForecast(target, ingestResult.Snapshot, 30.0, ensemblePredictions)
+
+		if syncErr := r.syncSnowForecastReport(ctx, target, evaluated); syncErr != nil {
+			log.Error(syncErr, "Failed to sync SnowForecastReport", "resort", target.Name)
+			return ctrl.Result{}, syncErr
 		}
+
+		statusMsg := fmt.Sprintf("Forecast updated (PowderScore: %d/100, Summit snow: %.1fin)", evaluated.PowderScore, evaluated.PredictedSnowfallInches)
+		SetResortTargetReady(target, weatherv1alpha1.ReasonSyncSuccess, statusMsg)
+
+		if r.Recorder != nil {
+			r.Recorder.Event(target, "Normal", "IngestionSuccess", fmt.Sprintf("Ingested forecast from providers (Summit snow: %.1fin)", evaluated.PredictedSnowfallInches))
+			if evaluated.PowderScore >= 80 {
+				r.Recorder.Event(target, "Normal", "PowderAlert", fmt.Sprintf("PowderAlert: %s scored %d/100 with %.1f\" predicted", target.Name, evaluated.PowderScore, evaluated.PredictedSnowfallInches))
+			}
+			if evaluated.WindHoldWarning {
+				r.Recorder.Event(target, "Warning", "WindHoldWarning", fmt.Sprintf("Elevated lift wind-hold risk: peak gust %.1fmph", evaluated.WindImpact.WindGustMph))
+			}
+		}
+
 		if updateErr := updater.UpdateResortTargetStatus(ctx, target); updateErr != nil {
 			return ctrl.Result{}, updateErr
 		}
@@ -155,10 +176,87 @@ func (r *ResortTargetReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	return ctrl.Result{RequeueAfter: remaining}, nil
 }
 
+// syncSnowForecastReport creates or updates the child SnowForecastReport CR with controller reference
+func (r *ResortTargetReconciler) syncSnowForecastReport(
+	ctx context.Context,
+	target *weatherv1alpha1.ResortTarget,
+	eval *model.EvaluatedForecast,
+) error {
+	reportName := fmt.Sprintf("%s-forecast", target.Name)
+	report := &weatherv1alpha1.SnowForecastReport{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      reportName,
+			Namespace: target.Namespace,
+		},
+	}
+
+	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, report, func() error {
+		// Set owner reference for garbage collection
+		if err := controllerutil.SetControllerReference(target, report, r.Scheme); err != nil {
+			return err
+		}
+
+		report.Spec.ResortRef = corev1.LocalObjectReference{
+			Name: target.Name,
+		}
+		report.Spec.WindowStart = metav1.NewTime(eval.WindowStart)
+		report.Spec.WindowEnd = metav1.NewTime(eval.WindowEnd)
+		report.Spec.PredictedSnowfallInches = eval.PredictedSnowfallInches
+		report.Spec.SnowToLiquidRatio = eval.SnowToLiquidRatio
+		report.Spec.FreezingLevelElevationFt = eval.FreezingLevelElevationFt
+		report.Spec.PowderScore = eval.PowderScore
+		report.Spec.ConfidenceInterval = eval.ConfidenceInterval
+
+		// Populate status conditions
+		now := metav1.Now()
+		report.Status.ComputedAt = &now
+
+		conditions := make([]metav1.Condition, 0)
+		if eval.GladesRecommended {
+			conditions = append(conditions, metav1.Condition{
+				Type:               "GladesRecommended",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+				Reason:             "LeewardLoading",
+				Message:            "Protected aspects and tree runs recommended for fresh snow stashes",
+			})
+		}
+		if eval.WindHoldWarning {
+			conditions = append(conditions, metav1.Condition{
+				Type:               "WindHoldWarning",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+				Reason:             "HighWindGusts",
+				Message:            fmt.Sprintf("Sustained winds %.1fmph or gusts %.1fmph threaten lift operations", eval.WindImpact.SustainedWindMph, eval.WindImpact.WindGustMph),
+			})
+		}
+		if eval.CrustRisk {
+			conditions = append(conditions, metav1.Condition{
+				Type:               "CrustRisk",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+				Reason:             "RainOrThawEvent",
+				Message:            "Recent temperatures or rain above freezing likely formed rain or freeze-thaw crust",
+			})
+		}
+		report.Status.Conditions = conditions
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to sync SnowForecastReport %s: %w", reportName, err)
+	}
+
+	logf.FromContext(ctx).Info("Synced child SnowForecastReport", "name", reportName, "operation", op)
+	return nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *ResortTargetReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&weatherv1alpha1.ResortTarget{}).
+		Owns(&weatherv1alpha1.SnowForecastReport{}).
 		Named("resorttarget").
 		Complete(r)
 }
