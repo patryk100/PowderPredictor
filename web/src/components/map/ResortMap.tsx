@@ -144,6 +144,7 @@ export const ResortMap: React.FC<ResortMapProps> = ({
       zoom: 6.8,
       minZoom: 5.5,
       maxZoom: 14,
+      maxCanvasSize: [4096, 4096],
       maxBounds: [
         [-76.5, 40.0],
         [-66.5, 47.5],

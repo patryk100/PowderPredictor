@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "PowderPredictor — Northeast Snow Intelligence & Alpine Microclimates",
   description:
     "Atmospheric lapse rate downscaling and mountain snow forecasts for 26 Northeast peaks across Vermont, New Hampshire, Maine, New York, and Massachusetts.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export default function RootLayout({
