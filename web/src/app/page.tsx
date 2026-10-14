@@ -308,17 +308,17 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Central Segmented View Mode Tabs */}
-          <nav className="flex items-center bg-[#1d2230]/90 p-1.5 rounded-2xl border border-white/[0.12] text-xs sm:text-sm shadow-inner backdrop-blur-md">
+          {/* Central Segmented View Mode Tabs (Condensed & sleek craft styling) */}
+          <nav className="flex items-center bg-[#181c26]/95 p-0.5 rounded-xl border border-white/[0.1] text-xs shadow-inner backdrop-blur-md">
             <button
               onClick={() => handleTabChange("map")}
-              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
+              className={`relative flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "map"
-                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
-                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
+                  ? "bg-white/[0.14] text-white shadow-sm border border-white/[0.18] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <MapIcon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "map" ? "text-sky-300" : "text-stone-300"}`} />
+              <MapIcon className={`w-3.5 h-3.5 transition-colors ${activeTab === "map" ? "text-sky-300" : "text-stone-400"}`} />
               <span>Alpine Map</span>
               {activeTab === "map" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-sm shadow-sky-400 shrink-0" />
@@ -326,13 +326,13 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => handleTabChange("bento")}
-              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
+              className={`relative flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "bento"
-                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
-                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
+                  ? "bg-white/[0.14] text-white shadow-sm border border-white/[0.18] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <LayoutGrid className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "bento" ? "text-indigo-300" : "text-stone-300"}`} />
+              <LayoutGrid className={`w-3.5 h-3.5 transition-colors ${activeTab === "bento" ? "text-indigo-300" : "text-stone-400"}`} />
               <span>Regional Guide</span>
               {activeTab === "bento" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-sm shadow-indigo-400 shrink-0" />
@@ -340,13 +340,13 @@ export default function HomePage() {
             </button>
             <button
               onClick={() => handleTabChange("matrix")}
-              className={`relative flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 cursor-pointer select-none ${
+              className={`relative flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-medium transition-all duration-200 cursor-pointer select-none ${
                 activeTab === "matrix"
-                  ? "bg-white/[0.16] text-white shadow-sm border border-white/[0.22] font-semibold"
-                  : "text-stone-300 hover:text-white hover:bg-white/[0.06] border border-transparent"
+                  ? "bg-white/[0.14] text-white shadow-sm border border-white/[0.18] font-semibold"
+                  : "text-stone-300 hover:text-white hover:bg-white/[0.04] border border-transparent"
               }`}
             >
-              <TableProperties className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${activeTab === "matrix" ? "text-purple-300" : "text-stone-300"}`} />
+              <TableProperties className={`w-3.5 h-3.5 transition-colors ${activeTab === "matrix" ? "text-purple-300" : "text-stone-400"}`} />
               <span>Summit Matrix</span>
               {activeTab === "matrix" && (
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm shadow-purple-400 shrink-0" />
@@ -354,16 +354,16 @@ export default function HomePage() {
             </button>
           </nav>
 
-          {/* Right Status / Origin Selector */}
-          <div className="flex items-center gap-3 text-sm shrink-0">
+          {/* Right Status / Origin Selector & Sync Controls */}
+          <div className="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm shrink-0">
             {/* Origin Metro Dropdown */}
-            <div className="flex items-center gap-2 bg-white/[0.07] border border-white/[0.12] rounded-xl px-3 py-1.5 text-stone-100 shadow-sm">
-              <MapPin className="w-4 h-4 text-sky-400" />
-              <span className="hidden lg:inline text-stone-300 text-xs font-medium">Origin:</span>
+            <div className="flex items-center gap-1.5 bg-white/[0.07] border border-white/[0.12] rounded-xl px-2.5 py-1.5 text-stone-100 shadow-sm">
+              <MapPin className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span className="hidden xl:inline text-stone-300 text-xs font-medium">Origin:</span>
               <select
                 value={activeOrigin.id}
                 onChange={(e) => handleOriginChange(e.target.value)}
-                className="bg-transparent text-sm text-stone-100 focus:outline-none cursor-pointer font-medium"
+                className="bg-transparent text-xs sm:text-sm text-stone-100 focus:outline-none cursor-pointer font-medium"
               >
                 {METRO_ORIGINS.map((orig) => (
                   <option key={orig.id} value={orig.id} className="bg-[#181c26] text-stone-100">
@@ -374,22 +374,22 @@ export default function HomePage() {
             </div>
 
             {/* Live Telemetry Indicator */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border bg-emerald-950/40 border-emerald-800/50 text-emerald-300">
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium border bg-emerald-950/40 border-emerald-800/50 text-emerald-300 shrink-0">
               <span className={`w-2 h-2 rounded-full ${sseConnected ? "bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" : "bg-stone-500"}`} />
-              <span className="hidden xl:inline">{sseConnected ? "Live Telemetry" : "Mesh Connected"}</span>
+              <span className="hidden 2xl:inline">{sseConnected ? "Live Telemetry" : "Connected"}</span>
             </div>
 
-            {/* Interactive Refresh Pill Button */}
+            {/* Interactive Refresh Pill Button - Always fully visible in nav bar */}
             <button
               onClick={() => fetchForecasts(true)}
               disabled={isLoading}
               title={lastSyncTime ? `Last synced at ${lastSyncTime}` : "Refresh Forecast Telemetry"}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 cursor-pointer select-none active:scale-95 ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all duration-200 cursor-pointer select-none active:scale-95 shrink-0 ${
                 isRecentlyRefreshed
                   ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300 shadow-md shadow-emerald-500/10"
                   : isLoading
                   ? "bg-sky-950/50 border-sky-500/50 text-sky-200"
-                  : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] hover:border-white/[0.15] text-stone-300 hover:text-white"
+                  : "bg-white/[0.06] hover:bg-white/[0.1] border-white/[0.1] hover:border-white/[0.2] text-stone-200 hover:text-white"
               }`}
             >
               {isRecentlyRefreshed ? (
@@ -397,12 +397,12 @@ export default function HomePage() {
               ) : (
                 <RefreshCw
                   className={`w-3.5 h-3.5 transition-transform duration-500 ${
-                    isLoading ? "animate-spin text-sky-400" : "text-stone-400 group-hover:text-stone-200"
+                    isLoading ? "animate-spin text-sky-400" : "text-stone-300"
                   }`}
                 />
               )}
-              <span className="hidden md:inline font-mono">
-                {isRecentlyRefreshed ? "Updated" : isLoading ? "Syncing..." : lastSyncTime ? `Sync (${lastSyncTime.split(" ")[0]})` : "Sync"}
+              <span className="font-mono text-xs">
+                {isRecentlyRefreshed ? "Synced" : isLoading ? "Syncing..." : "Sync"}
               </span>
             </button>
           </div>
