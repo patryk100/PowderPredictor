@@ -293,17 +293,12 @@ export default function HomePage() {
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400/25 via-indigo-400/20 to-purple-400/25 border border-sky-300/40 flex items-center justify-center text-sky-200 shadow-md shadow-sky-500/15">
               <Snowflake className="w-5 h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-base tracking-tight text-white">
-                  PowderPredictor
-                </span>
-                <span className="text-xs text-sky-300 font-mono tracking-wider bg-sky-900/60 border border-sky-600/50 px-2 py-0.5 rounded">
-                  Northeast
-                </span>
-              </div>
-              <span className="text-xs text-stone-300 font-medium block">
-                26 Northeast Summits
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-base tracking-tight text-white">
+                PowderPredictor
+              </span>
+              <span className="text-xs text-sky-300 font-mono tracking-wider bg-sky-900/60 border border-sky-600/50 px-2 py-0.5 rounded">
+                Northeast
               </span>
             </div>
           </div>
