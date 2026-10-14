@@ -9,7 +9,7 @@
 }
 
 html {
-  font-size: 16.5px; /* Tuned balance: ~10% larger than browser default (16px), down ~8.3% from 18px */
+  font-size: 15.675px; /* Scaled down 5% from 16.5px for crisp, compact readability */
 }
 
 @theme inline {
